@@ -15,8 +15,7 @@
     "activeTab",
     "tabs",
     "downloads",
-    "*://beta.nomi.ai/*",
-    "*://nomi.ai/*"
+    "*://beta.nomi.ai/*"
   ],
   "browser_action": {
     "default_icon": {
