@@ -14,7 +14,7 @@ The source code of this extension is open and available for you to read. Do NOT 
 
 ## Installation:
 
-1. In Firefox, search [addons.mozilla.org](https://addons.mozilla.org) for `Nomi.AI Shared Notes Extractor`
+1. In Firefox, search [addons.mozilla.org](https://addons.mozilla.org) for `Nomi.AI Shared Notes Extractor` OR click [this link](https://addons.mozilla.org/en-US/firefox/addon/nomiai-shared-notes-extractor/)
 2. Click the "Add to Firefox" button
 3. Make a selection for private windows and click "Add" on the popup
 4. Make a selection for pin to toolbar and click "Done"
