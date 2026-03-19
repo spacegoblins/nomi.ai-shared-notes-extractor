@@ -4,7 +4,9 @@
 
 Nomi.AI Shared Notes Extractor is a Firefox browser extension designed to simplify the process of exporting your Nomi's entire Shared Notes to a simple, human readable .txt file. This is useful for planning, archiving, shared notes version control, sharing with other users, and more.
 
-Take a look at the code before using it. If you're a developer, and have a suggestion to improve this tool, send me an email at spacegoblins@protonmail.com. You're also welcome to modify this extension and upload it to the mozilla store under a new name. 
+Take a look at the code before using it. If you're a developer, and have a suggestion to improve this tool, send me an email at spacegoblins@protonmail.com. You're also welcome to modify this extension and upload it to the mozilla store under a new name.
+
+This extension is designed for Desktop.
 
 🛑 NOTE: This tool is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. 
 This extension will never be for sale, display ads, collect your data, or do anything other than the simple operation outlined above. 
