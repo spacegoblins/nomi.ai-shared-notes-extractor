@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f10;
+      color: #e4e4e7;
+      width: 280px;
+      padding: 16px;
+      min-height: 120px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .header .logo {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .header h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e4e4e7;
+      line-height: 1.2;
+    }
+
+    .header p {
+      font-size: 10px;
+      color: #71717a;
+      margin-top: 1px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #27272a;
+      margin-bottom: 14px;
+    }
+
+    .status-box {
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .status-box.ready {
+      background: #14532d22;
+      border: 1px solid #166534;
+      color: #86efac;
+    }
+
+    .status-box.navigate {
+      background: #7c290022;
+      border: 1px solid #9a3412;
+      color: #fca5a5;
+    }
+
+    .status-box.warning {
+      background: #78350022;
+      border: 1px solid #92400e;
+      color: #fcd34d;
+    }
+
+    .status-box.working {
+      background: #1e1b4b22;
+      border: 1px solid #3730a3;
+      color: #a5b4fc;
+    }
+
+    .status-box .label {
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .nomi-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e4e4e7;
+      margin-bottom: 2px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-export {
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      color: white;
+    }
+
+    .btn-navigate {
+      background: #27272a;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+    }
+
+    .btn-navigate:hover { background: #3f3f46; }
+
+    .spinner {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .success-check {
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">📦</div>
+    <div>
+      <h1>Nomi.AI Shared Notes Extractor</h1>
+      <p>Shared Notes converted to .txt</p>
+      <p>This tool is not affiliated with Nomi.ai or Glimpse.ai.</p>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div id="content"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

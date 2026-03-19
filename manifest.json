@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "Nomi.AI Shared Notes Extractor",
+  "version": "1.1",
+  "description": "Export a Nomi's Shared Notes to a clean .txt file.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "downloads",
+    "*://beta.nomi.ai/*",
+    "*://nomi.ai/*"
+  ],
+  "browser_action": {
+    "default_icon": {
+      "48": "icons/icon48.png",
+      "96": "icons/icon96.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Nomi.AI Shared Notes Extractor"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "96": "icons/icon96.png"
+  }
+}
