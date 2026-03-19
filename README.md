@@ -6,7 +6,9 @@ Nomi.AI Shared Notes Extractor is a Firefox browser extension designed to simpli
 
 Take a look at the code before using it. If you're a developer, and have a suggestion to improve this tool, send me an email at spacegoblins@protonmail.com. You're also welcome to modify this extension and upload it to the mozilla store under a new name. 
 
-🛑 NOTE: This tool is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. This extension will never be for sale, display ads, or do anything other than the simple operation outlined above. The source code of this extension is open and available for you to read. Do NOT install or use this extension unless you trust the publisher or are able to inspect the code verify that it is safe.
+🛑 NOTE: This tool is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. 
+This extension will never be for sale, display ads, collect your data, or do anything other than the simple operation outlined above. 
+The source code of this extension is open and available for you to read. Do NOT install or use this extension unless you trust the publisher or are able to inspect the code verify that it is safe.
 
 ## Installation:
 
