@@ -23,11 +23,11 @@ The source code of this extension is open and available for you to read. Do NOT 
 
 1. Navigate to your Nomi's private chat OR their Shared Notes page at beta.nomi.ai
 2. Click the Extensions button (puzzle icon) in the top right of Firefox
-3. Select the extension
+3. Click the Nomi.ai Shared Notes Extractor extension
 4. Click "Export .txt"
 5. Check your browser's default downloads folder for the text file
 
-You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.txt'
+You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.txt'. You can rename these for version control if you like.
 
 ## Future Updates:
 
