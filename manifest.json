@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Nomi.AI Shared Notes Extractor",
-  "version": "1.2",
-  "description": "Export a Nomi's Shared Notes to a clean .txt file.",
+  "version": "1.4",
+  "description": "Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv).",
   "browser_specific_settings": {
     "gecko": {
       "id": "nomi.ai-shared-notes-extractor@spacegoblins",
@@ -15,6 +15,7 @@
     "activeTab",
     "tabs",
     "downloads",
+    "storage",
     "*://beta.nomi.ai/*"
   ],
   "browser_action": {
@@ -25,6 +26,14 @@
     "default_popup": "popup.html",
     "default_title": "Nomi.AI Shared Notes Extractor"
   },
+  "content_scripts": [
+    {
+      "matches": ["*://beta.nomi.ai/nomis/*/shared-notes*"],
+      "js": ["inject.js"],
+      "css": ["inject.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
     "48": "icons/icon48.png",
     "96": "icons/icon96.png"

@@ -1,9 +1,17 @@
-// popup.js — toolbar popup UI, built with safe DOM methods (no innerHTML)
+// popup.js — toolbar popup UI for v1.4
+// Shows page detection status, Settings panel, and About panel.
+// Import/Export buttons now live in inject.js (injected into the page header).
 
 const content = document.getElementById('content');
-let resultTimeout = null;
+const buttonBar = document.getElementById('button-bar');
 
-// -- URL Helpers --
+// ── Default Settings ──
+
+const DEFAULT_SETTINGS = {
+  exportFormats: { txt: true, md: false, csv: false },
+};
+
+// ── URL Helpers ──
 
 function getNomiIdFromUrl(url) {
   const match = url.match(/\/nomis\/(\d+)/);
@@ -22,7 +30,7 @@ function isNomiAi(url) {
   return /https?:\/\/(beta\.)?nomi\.ai/.test(url);
 }
 
-// -- DOM Helpers --
+// ── DOM Helpers ──
 
 function render(...nodes) {
   content.textContent = '';
@@ -42,12 +50,7 @@ function el(tag, className, ...children) {
 function statusBox(type, labelText, ...bodyChildren) {
   const box = el('div', `status-box ${type}`);
   const label = el('div', 'label');
-  if (type === 'working') {
-    label.appendChild(el('span', 'spinner'));
-    label.appendChild(document.createTextNode(' ' + labelText));
-  } else {
-    label.textContent = labelText;
-  }
+  label.textContent = labelText;
   box.appendChild(label);
   for (const child of bodyChildren) {
     if (typeof child === 'string') box.appendChild(document.createTextNode(child));
@@ -56,112 +59,204 @@ function statusBox(type, labelText, ...bodyChildren) {
   return box;
 }
 
-function makeButton(className, id, text) {
-  const button = document.createElement('button');
-  button.className = className;
-  button.id = id;
-  button.textContent = text;
-  return button;
+// ── Panel State ──
+
+let activePanel = 'home'; // 'home' | 'settings' | 'about'
+
+function setActivePanel(panel) {
+  activePanel = panel;
+  renderButtonBar();
+  if (panel === 'home') init();
+  else if (panel === 'settings') showSettings();
+  else if (panel === 'about') showAbout();
 }
 
-// -- Timeout Safety --
+function renderButtonBar() {
+  buttonBar.textContent = '';
+  if (activePanel === 'home') {
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'btn-capsule';
+    settingsBtn.textContent = 'Settings';
+    settingsBtn.addEventListener('click', () => setActivePanel('settings'));
 
-function startResultTimeout(ms) {
-  clearResultTimeout();
-  resultTimeout = setTimeout(() => {
-    const retryBtn = makeButton('btn-navigate', 'btn-retry', 'Try Again');
-    render(
-      statusBox('warning', 'Timeout', 'The operation took too long. Please try again.'),
-      retryBtn
-    );
-    retryBtn.addEventListener('click', init);
-  }, ms);
-}
+    const aboutBtn = document.createElement('button');
+    aboutBtn.className = 'btn-capsule';
+    aboutBtn.textContent = 'About';
+    aboutBtn.addEventListener('click', () => setActivePanel('about'));
 
-function clearResultTimeout() {
-  if (resultTimeout) {
-    clearTimeout(resultTimeout);
-    resultTimeout = null;
+    buttonBar.appendChild(settingsBtn);
+    buttonBar.appendChild(aboutBtn);
+  } else {
+    const backBtn = document.createElement('button');
+    backBtn.className = 'btn-capsule';
+    backBtn.textContent = 'Back';
+    backBtn.addEventListener('click', () => setActivePanel('home'));
+    buttonBar.appendChild(backBtn);
   }
 }
 
-// -- Tab Helpers --
+// ── Settings Panel ──
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Poll-based tab load wait — avoids event listener issues in popup context.
-// First waits for tab to enter 'loading' (so we don't see the old page's 'complete'),
-// then waits for 'complete'.
-async function waitForTabLoad(tabId, timeoutMs) {
-  const start = Date.now();
-
-  // Phase 1: wait for navigation to begin (status leaves 'complete')
-  while (Date.now() - start < timeoutMs) {
-    const tab = await browser.tabs.get(tabId);
-    if (tab.status === 'loading') break;
-    await sleep(100);
-  }
-
-  // Phase 2: wait for page to finish loading
-  while (Date.now() - start < timeoutMs) {
-    const tab = await browser.tabs.get(tabId);
-    if (tab.status === 'complete') return;
-    await sleep(250);
-  }
-
-  throw new Error('Page load timed out.');
-}
-
-// Poll until at least one textarea appears, signaling React has rendered
-async function waitForTextareas(tabId, timeoutMs) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const results = await browser.tabs.executeScript(tabId, {
-        code: 'document.querySelectorAll("textarea").length'
-      });
-      if (results[0] > 0) return;
-    } catch (e) {
-      // Page may not be ready for script injection yet — keep polling
+async function loadSettings() {
+  try {
+    const stored = await browser.storage.sync.get('settings');
+    if (stored.settings) {
+      return Object.assign(structuredClone(DEFAULT_SETTINGS), stored.settings);
     }
-    await sleep(500);
-  }
+  } catch (e) { /* storage unavailable */ }
+  return structuredClone(DEFAULT_SETTINGS);
 }
 
-// Poll for the result that content.js writes to window.__nomiExportResult
-async function pollForResult(tabId, timeoutMs) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const results = await browser.tabs.executeScript(tabId, {
-        code: 'window.__nomiExportResult'
-      });
-      if (results[0]) return results[0];
-    } catch (e) {
-      // Ignore — script may not be ready yet
-    }
-    await sleep(300);
-  }
-  return null;
+async function saveSettings(settings) {
+  await browser.storage.sync.set({ settings });
 }
 
-// -- Main --
+async function showSettings() {
+  const settings = await loadSettings();
+
+  const heading = el('div', 'panel-heading', 'Export Settings');
+  const desc = el('div', 'panel-desc', 'Select which formats to include when exporting:');
+
+  const form = document.createElement('div');
+  form.className = 'settings-form';
+
+  const formats = [
+    { key: 'txt', label: 'Plain Text (.txt)' },
+    { key: 'md',  label: 'Markdown (.md)' },
+    { key: 'csv', label: 'CSV (.csv)' },
+  ];
+
+  for (const fmt of formats) {
+    const row = document.createElement('label');
+    row.className = 'checkbox-row';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!settings.exportFormats[fmt.key];
+    cb.addEventListener('change', async () => {
+      settings.exportFormats[fmt.key] = cb.checked;
+      // Ensure at least one format stays selected
+      const anyChecked = Object.values(settings.exportFormats).some(v => v);
+      if (!anyChecked) {
+        settings.exportFormats[fmt.key] = true;
+        cb.checked = true;
+      }
+      await saveSettings(settings);
+    });
+
+    const text = document.createTextNode(fmt.label);
+    row.appendChild(cb);
+    row.appendChild(text);
+    form.appendChild(row);
+  }
+
+  render(heading, desc, form);
+}
+
+// ── About Panel ──
+
+function showAbout() {
+  const container = el('div', null);
+
+  // Show loading state while fetching
+  const loadingMsg = el('div', null, 'Fetching release info\u2026');
+  Object.assign(loadingMsg.style, { fontSize: '11px', color: '#a1a1aa' });
+  container.appendChild(loadingMsg);
+
+  render(statusBox('ready', 'About', container));
+
+  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor';
+  const API_URL = 'https://api.github.com/repos/spacegoblins/nomi.ai-shared-notes-extractor/releases/latest';
+
+  fetch(API_URL, { headers: { 'Accept': 'application/vnd.github.v3+json' } })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(release => {
+      container.textContent = '';
+
+      const versionDiv = el('div', null, `Version: ${release.tag_name || release.name || 'unknown'}`);
+      Object.assign(versionDiv.style, { fontSize: '12px', fontWeight: '600', color: '#e4e4e7', marginBottom: '4px' });
+      container.appendChild(versionDiv);
+
+      if (release.published_at) {
+        const date = new Date(release.published_at).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const dateDiv = el('div', null, `Released: ${date}`);
+        Object.assign(dateDiv.style, { fontSize: '11px', color: '#a1a1aa', marginBottom: '10px' });
+        container.appendChild(dateDiv);
+      }
+
+      if (release.body) {
+        const notesLabel = el('div', null, 'Release Notes:');
+        Object.assign(notesLabel.style, { fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: '#a1a1aa', marginBottom: '4px' });
+        container.appendChild(notesLabel);
+
+        const notesBody = el('div', null, release.body);
+        Object.assign(notesBody.style, {
+          fontSize: '11px',
+          color: '#d4d4d8',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-wrap',
+          maxHeight: '120px',
+          overflowY: 'auto',
+          marginBottom: '10px',
+        });
+        container.appendChild(notesBody);
+      }
+
+      appendRepoLink(container, REPO_URL);
+    })
+    .catch(() => {
+      container.textContent = '';
+
+      const manifest = browser.runtime.getManifest();
+      const versionDiv = el('div', null, `Version: ${manifest.version}`);
+      Object.assign(versionDiv.style, { fontSize: '12px', fontWeight: '600', color: '#e4e4e7', marginBottom: '8px' });
+      container.appendChild(versionDiv);
+
+      const failMsg = el('div', null, 'Could not fetch release info \u2014 please visit ');
+      Object.assign(failMsg.style, { fontSize: '11px', color: '#71717a', marginBottom: '10px' });
+
+      const fallbackLink = document.createElement('a');
+      fallbackLink.href = `${REPO_URL}/releases/latest`;
+      fallbackLink.textContent = 'GitHub';
+      Object.assign(fallbackLink.style, { color: '#818cf8', textDecoration: 'underline' });
+      fallbackLink.target = '_blank';
+      fallbackLink.rel = 'noopener noreferrer';
+      failMsg.appendChild(fallbackLink);
+
+      container.appendChild(failMsg);
+
+      appendRepoLink(container, REPO_URL);
+    });
+}
+
+function appendRepoLink(container, url) {
+  const linkDiv = document.createElement('div');
+  Object.assign(linkDiv.style, { marginTop: '6px' });
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.textContent = 'View on GitHub';
+  Object.assign(link.style, { fontSize: '11px', color: '#818cf8', textDecoration: 'underline' });
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+
+  linkDiv.appendChild(link);
+  container.appendChild(linkDiv);
+}
+
+// ── Main ──
 
 async function init() {
-  clearResultTimeout();
+  activePanel = 'home';
+  renderButtonBar();
+
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   const url = tab.url || '';
-
-  if (!isNomiAi(url)) {
-    render(
-      statusBox('warning', 'Nomi Not Found',
-        'Navigate to a Nomi\'s private chat or Shared Notes page on beta.nomi.ai, then try again.'
-      )
-    );
-    return;
-  }
 
   if (isSharedNotesPage(url)) {
     // Get the Nomi name from the page title
@@ -179,118 +274,46 @@ async function init() {
       if (results[0]) nomiName = results[0];
     } catch (e) {}
 
-    const exportBtn = makeButton('btn-export', 'btn-export', 'Export .txt');
-
     render(
-      statusBox('ready', 'Ready to Extract',
-        el('div', 'nomi-name', 'Nomi Detected: ' + nomiName)
-      ),
-      exportBtn
+      statusBox('ready', `${nomiName} Shared Notes Detected`,
+        el('div', 'status-hint', 'Use the Import and Export buttons in the page header.')
+      )
     );
-
-    exportBtn.addEventListener('click', () => extractFromTab(tab.id));
 
   } else if (isChatPage(url)) {
     const nomiId = getNomiIdFromUrl(url);
     const sharedNotesUrl = `https://beta.nomi.ai/nomis/${nomiId}/shared-notes`;
-    const navBtn = makeButton('btn-navigate', 'btn-nav', 'Navigate to Shared Notes & Export');
+    const navBtn = document.createElement('button');
+    navBtn.className = 'btn-navigate';
+    navBtn.textContent = 'Navigate to Shared Notes';
+    navBtn.addEventListener('click', async () => {
+      await browser.tabs.update(tab.id, { url: sharedNotesUrl });
+      window.close();
+    });
 
     render(
       statusBox('navigate', 'Navigate to Shared Notes',
-        'You\'re on the chat page. Click below to go to Shared Notes and export automatically.'
+        'You\'re on the chat page. Click below to go to Shared Notes.'
       ),
       navBtn
     );
 
-    navBtn.addEventListener('click', () => navigateAndExtract(tab.id, sharedNotesUrl));
-
-  } else {
-    const box = statusBox('warning', 'Wrong Page',
-      'Please navigate to a Nomi\'s private chat page or Shared Notes page, then click the export button.'
-    );
-    box.appendChild(document.createElement('br'));
-    box.appendChild(document.createElement('br'));
-    box.appendChild(el('strong', null, 'Chat page:'));
-    box.appendChild(document.createTextNode(' nomi.ai/nomis/[id]'));
-    box.appendChild(document.createElement('br'));
-    box.appendChild(el('strong', null, 'Notes page:'));
-    box.appendChild(document.createTextNode(' nomi.ai/nomis/[id]/shared-notes'));
-    render(box);
-  }
-}
-
-// Extract directly — already on the shared notes page
-async function extractFromTab(tabId) {
-  render(statusBox('working', 'Extracting\u2026', 'Reading Shared Notes, please wait.'));
-  startResultTimeout(20000);
-  try {
-    // Clear any stale result from a previous run
-    await browser.tabs.executeScript(tabId, { code: 'window.__nomiExportResult = null;' });
-    await browser.tabs.executeScript(tabId, { file: 'content.js' });
-    const result = await pollForResult(tabId, 15000);
-    clearResultTimeout();
-    if (result) {
-      showResult(result);
-    } else {
-      showResult({ success: false, error: 'No response from content script.' });
-    }
-  } catch (err) {
-    clearResultTimeout();
-    showResult({ success: false, error: err.message || 'Extraction failed.' });
-  }
-}
-
-// Navigate to shared notes first, then extract
-async function navigateAndExtract(tabId, url) {
-  render(statusBox('working', 'Navigating\u2026', 'Loading Shared Notes page, please wait.'));
-  startResultTimeout(35000);
-  try {
-    await browser.tabs.update(tabId, { url });
-    await waitForTabLoad(tabId, 15000);
-    await waitForTextareas(tabId, 10000);
-    // Clear any stale result, then inject
-    await browser.tabs.executeScript(tabId, { code: 'window.__nomiExportResult = null;' });
-    await browser.tabs.executeScript(tabId, { file: 'content.js' });
-    const result = await pollForResult(tabId, 15000);
-    clearResultTimeout();
-    if (result) {
-      showResult(result);
-    } else {
-      showResult({ success: false, error: 'No response from content script.' });
-    }
-  } catch (err) {
-    clearResultTimeout();
-    showResult({ success: false, error: err.message || 'Could not load the Shared Notes page.' });
-  }
-}
-
-// Display the extraction result in the popup
-function showResult(msg) {
-  if (msg.success) {
-    const nameDiv = document.createElement('div');
-    Object.assign(nameDiv.style, { textAlign: 'center', fontSize: '13px', fontWeight: '600' });
-    nameDiv.textContent = msg.filename || msg.nomiName;
-
-    const savedDiv = document.createElement('div');
-    Object.assign(savedDiv.style, { textAlign: 'center', fontSize: '11px', color: '#86efac', marginTop: '4px' });
-    savedDiv.textContent = 'Saved to Downloads';
-
+  } else if (isNomiAi(url)) {
     render(
-      el('div', 'status-box ready',
-        el('div', 'success-check', 'Success!'),
-        nameDiv,
-        savedDiv
+      statusBox('warning', 'Navigate to Shared Notes',
+        'Navigate to your Nomi\'s Shared Notes to use this extension.'
       )
     );
+
   } else {
-    const errorText = msg.error || 'Could not read the page. Make sure you are on the Shared Notes page and it has fully loaded.';
-    const retryBtn = makeButton('btn-navigate', 'btn-retry', 'Try Again');
     render(
-      statusBox('warning', 'Export Failed', errorText),
-      retryBtn
+      statusBox('warning', 'Nomi Not Detected',
+        'Navigate to your Nomi\'s Shared Notes on beta.nomi.ai to use this extension.'
+      )
     );
-    retryBtn.addEventListener('click', init);
   }
 }
+
+// ── Init ──
 
 init();

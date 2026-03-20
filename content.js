@@ -1,4 +1,7 @@
-// content.js — extracts shared notes fields and triggers download (runs in page context)
+// content.js — LEGACY v1.2 popup-injected export script
+// TODO: This file is dead code as of v1.4. All export/import logic now lives in inject.js,
+// TODO: which is auto-injected via manifest content_scripts. This file is no longer referenced
+// TODO: by any part of the extension and can be safely deleted once v1.4 is confirmed stable.
 
 (async function () {
   if (window.__nomiExporterRunning) return;
