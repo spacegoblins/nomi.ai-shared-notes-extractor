@@ -6,6 +6,50 @@ const buttonBar = document.getElementById('button-bar');
 let resultTimeout = null;
 let currentView = 'main'; // 'main' | 'settings' | 'about'
 
+// -- Settings --
+
+const DEFAULT_SETTINGS = {
+  exportFormats: { txt: true, md: false, csv: false },
+  // Future options (not yet visible in UI):
+  // embedNomiUuid: false,
+  // embedInPage: false,
+  // useCloudStorage: false,
+};
+
+let settings = structuredClone(DEFAULT_SETTINGS);
+
+async function loadSettings() {
+  try {
+    const stored = await browser.storage.sync.get('settings');
+    if (stored.settings) {
+      settings = Object.assign(structuredClone(DEFAULT_SETTINGS), stored.settings);
+    }
+  } catch (e) {
+    // storage unavailable — keep defaults
+  }
+}
+
+async function saveSettings() {
+  try {
+    await browser.storage.sync.set({ settings });
+  } catch (e) {
+    // storage unavailable — silently fail
+  }
+}
+
+function getSelectedFormatLabels() {
+  const labels = [];
+  if (settings.exportFormats.txt) labels.push('.txt');
+  if (settings.exportFormats.md) labels.push('.md');
+  if (settings.exportFormats.csv) labels.push('.csv');
+  return labels;
+}
+
+function getExportButtonLabel() {
+  const labels = getSelectedFormatLabels();
+  return `Export [${labels.join(', ')}]`;
+}
+
 // -- URL Helpers --
 
 function getNomiIdFromUrl(url) {
@@ -74,7 +118,7 @@ function renderButtonBar(view) {
   if (view === 'settings' || view === 'about') {
     const homeBtn = document.createElement('button');
     homeBtn.className = 'btn-capsule';
-    homeBtn.textContent = '\uD83C\uDFE0 Home';
+    homeBtn.textContent = 'Home';
     homeBtn.addEventListener('click', () => {
       currentView = 'main';
       renderButtonBar('main');
@@ -84,7 +128,7 @@ function renderButtonBar(view) {
   } else {
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'btn-capsule';
-    settingsBtn.textContent = '\u2699 Settings';
+    settingsBtn.textContent = 'Settings';
     settingsBtn.addEventListener('click', () => {
       currentView = 'settings';
       renderButtonBar('settings');
@@ -93,7 +137,7 @@ function renderButtonBar(view) {
 
     const aboutBtn = document.createElement('button');
     aboutBtn.className = 'btn-capsule';
-    aboutBtn.textContent = '\u2139 About';
+    aboutBtn.textContent = 'About';
     aboutBtn.addEventListener('click', () => {
       currentView = 'about';
       renderButtonBar('about');
@@ -105,17 +149,87 @@ function renderButtonBar(view) {
   }
 }
 
-// -- Panels (placeholders — full implementations in later phases) --
+// -- Panels --
 
 function renderSettingsPanel() {
+  const container = el('div', null);
+
+  const heading = el('div', 'label');
+  heading.textContent = 'EXPORT FORMATS';
+  heading.style.marginBottom = '10px';
+  heading.style.fontSize = '10px';
+  heading.style.fontWeight = '700';
+  heading.style.letterSpacing = '0.08em';
+  heading.style.color = '#a1a1aa';
+  container.appendChild(heading);
+
+  const formats = [
+    { key: 'txt', label: '.txt — Plain text' },
+    { key: 'md',  label: '.md — Markdown' },
+    { key: 'csv', label: '.csv — Spreadsheet' },
+  ];
+
+  const checkboxes = [];
+
+  for (const fmt of formats) {
+    const row = document.createElement('label');
+    Object.assign(row.style, {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '6px 0',
+      fontSize: '12px',
+      color: '#e4e4e7',
+      cursor: 'pointer',
+    });
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = settings.exportFormats[fmt.key];
+    cb.dataset.format = fmt.key;
+    checkboxes.push(cb);
+
+    cb.addEventListener('change', () => {
+      const checkedCount = checkboxes.filter(c => c.checked).length;
+      if (checkedCount === 0) {
+        // Prevent unchecking the last one
+        cb.checked = true;
+        return;
+      }
+      settings.exportFormats[fmt.key] = cb.checked;
+      saveSettings();
+    });
+
+    row.appendChild(cb);
+    row.appendChild(document.createTextNode(fmt.label));
+    container.appendChild(row);
+  }
+
+  const note = document.createElement('div');
+  Object.assign(note.style, {
+    fontSize: '10px',
+    color: '#71717a',
+    marginTop: '10px',
+    lineHeight: '1.4',
+  });
+  note.textContent = 'At least one format must be selected. Settings sync across devices via your Firefox account.';
+  container.appendChild(note);
+
   render(
-    statusBox('ready', 'Settings', 'Settings panel coming soon.')
+    statusBox('ready', 'Settings', container)
   );
 }
 
 function renderAboutPanel() {
   render(
     statusBox('ready', 'About', 'About panel coming soon.')
+  );
+}
+
+// Import placeholder — full implementation in Phase 6
+function handleImport(tabId) {
+  render(
+    statusBox('warning', 'Import', 'Import feature coming soon.')
   );
 }
 
@@ -208,6 +322,7 @@ async function init() {
   clearResultTimeout();
   currentView = 'main';
   renderButtonBar('main');
+  await loadSettings();
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   const url = tab.url || '';
 
@@ -236,15 +351,18 @@ async function init() {
       if (results[0]) nomiName = results[0];
     } catch (e) {}
 
-    const exportBtn = makeButton('btn-export', 'btn-export', 'Export .txt');
+    const importBtn = makeButton('btn-import', 'btn-import', 'Import');
+    const exportBtn = makeButton('btn-export', 'btn-export', getExportButtonLabel());
 
     render(
       statusBox('ready', 'Ready to Export',
         el('div', 'nomi-name', 'Nomi Detected: ' + nomiName)
       ),
+      importBtn,
       exportBtn
     );
 
+    importBtn.addEventListener('click', () => handleImport(tab.id));
     exportBtn.addEventListener('click', () => exportFromTab(tab.id));
 
   } else if (isChatPage(url)) {

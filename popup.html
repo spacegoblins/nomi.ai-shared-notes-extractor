@@ -111,6 +111,12 @@
       color: white;
     }
 
+    .btn-import {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      margin-bottom: 8px;
+    }
+
     .btn-navigate {
       background: #27272a;
       color: #e4e4e7;
@@ -163,6 +169,14 @@
     .btn-capsule:hover {
       background: #3f3f46;
     }
+
+    /* Settings checkboxes */
+    input[type="checkbox"] {
+      accent-color: #818cf8;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -176,6 +190,7 @@
   </div>
   <div class="divider"></div>
   <div id="button-bar" class="button-bar"></div>
+  <div class="divider"></div>
   <div id="content"></div>
 
   <script src="popup.js"></script>
