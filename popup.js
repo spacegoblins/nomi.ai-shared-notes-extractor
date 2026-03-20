@@ -294,7 +294,6 @@ async function init() {
     render(
       statusBox('navigate', 'Navigate to Shared Notes',
         'You\'re on the chat page. Click below to go to Shared Notes.'
-        'You\'re on the chat page. Click below to go to Shared Notes.'
       ),
       navBtn
     );
