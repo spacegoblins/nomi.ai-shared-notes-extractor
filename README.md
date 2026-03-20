@@ -35,7 +35,7 @@ If the community finds this extension useful, I may look into porting it to Chro
 
 Thank you for using my extension. To see my other tools for Nomi.ai, visit [nomicrafter.com.](https://nomicrafter.com/)
 
-## Bug Reports/Comments
+## Bug Reports/Comments:
 
 You can contact me at spacegoblins@protonmail.com.
 
