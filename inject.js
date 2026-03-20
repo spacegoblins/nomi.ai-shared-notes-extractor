@@ -518,7 +518,7 @@
     }
 
     showToast(
-      `Import complete — ${written} field${written !== 1 ? 's' : ''} written. Expand each section and press Save.`,
+      `Import complete. Expand each section and press Save.`,
       'success', 8000
     );
   }
@@ -563,6 +563,11 @@
       if (changes.settings) updateExportLabel(exportBtn);
     });
 
+    const divider = document.createElement('span');
+    divider.className = 'nomi-ext-divider';
+    divider.textContent = '|';
+
+    group.appendChild(divider);
     group.appendChild(importBtn);
     group.appendChild(exportBtn);
     header.appendChild(group);
