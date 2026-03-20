@@ -1,7 +1,10 @@
 // popup.js — toolbar popup UI, built with safe DOM methods (no innerHTML)
+// v1.3 — multi-format export, import, settings, about panel
 
 const content = document.getElementById('content');
+const buttonBar = document.getElementById('button-bar');
 let resultTimeout = null;
+let currentView = 'main'; // 'main' | 'settings' | 'about'
 
 // -- URL Helpers --
 
@@ -62,6 +65,58 @@ function makeButton(className, id, text) {
   button.id = id;
   button.textContent = text;
   return button;
+}
+
+// -- Button Bar --
+
+function renderButtonBar(view) {
+  buttonBar.textContent = '';
+  if (view === 'settings' || view === 'about') {
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'btn-capsule';
+    homeBtn.textContent = '\uD83C\uDFE0 Home';
+    homeBtn.addEventListener('click', () => {
+      currentView = 'main';
+      renderButtonBar('main');
+      init();
+    });
+    buttonBar.appendChild(homeBtn);
+  } else {
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'btn-capsule';
+    settingsBtn.textContent = '\u2699 Settings';
+    settingsBtn.addEventListener('click', () => {
+      currentView = 'settings';
+      renderButtonBar('settings');
+      renderSettingsPanel();
+    });
+
+    const aboutBtn = document.createElement('button');
+    aboutBtn.className = 'btn-capsule';
+    aboutBtn.textContent = '\u2139 About';
+    aboutBtn.addEventListener('click', () => {
+      currentView = 'about';
+      renderButtonBar('about');
+      renderAboutPanel();
+    });
+
+    buttonBar.appendChild(settingsBtn);
+    buttonBar.appendChild(aboutBtn);
+  }
+}
+
+// -- Panels (placeholders — full implementations in later phases) --
+
+function renderSettingsPanel() {
+  render(
+    statusBox('ready', 'Settings', 'Settings panel coming soon.')
+  );
+}
+
+function renderAboutPanel() {
+  render(
+    statusBox('ready', 'About', 'About panel coming soon.')
+  );
 }
 
 // -- Timeout Safety --
@@ -131,7 +186,7 @@ async function waitForTextareas(tabId, timeoutMs) {
 }
 
 // Poll for the result that content.js writes to window.__nomiExportResult
-async function pollForResult(tabId, timeoutMs) {
+async function pollForExportResult(tabId, timeoutMs) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
@@ -151,6 +206,8 @@ async function pollForResult(tabId, timeoutMs) {
 
 async function init() {
   clearResultTimeout();
+  currentView = 'main';
+  renderButtonBar('main');
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   const url = tab.url || '';
 
@@ -182,31 +239,31 @@ async function init() {
     const exportBtn = makeButton('btn-export', 'btn-export', 'Export .txt');
 
     render(
-      statusBox('ready', 'Ready to Extract',
+      statusBox('ready', 'Ready to Export',
         el('div', 'nomi-name', 'Nomi Detected: ' + nomiName)
       ),
       exportBtn
     );
 
-    exportBtn.addEventListener('click', () => extractFromTab(tab.id));
+    exportBtn.addEventListener('click', () => exportFromTab(tab.id));
 
   } else if (isChatPage(url)) {
     const nomiId = getNomiIdFromUrl(url);
     const sharedNotesUrl = `https://beta.nomi.ai/nomis/${nomiId}/shared-notes`;
-    const navBtn = makeButton('btn-navigate', 'btn-nav', 'Navigate to Shared Notes & Export');
+    const navBtn = makeButton('btn-navigate', 'btn-nav', 'Navigate to Shared Notes');
 
     render(
       statusBox('navigate', 'Navigate to Shared Notes',
-        'You\'re on the chat page. Click below to go to Shared Notes and export automatically.'
+        'You\'re on the chat page. Click below to go to Shared Notes.'
       ),
       navBtn
     );
 
-    navBtn.addEventListener('click', () => navigateAndExtract(tab.id, sharedNotesUrl));
+    navBtn.addEventListener('click', () => navigateToSharedNotes(tab.id, sharedNotesUrl));
 
   } else {
     const box = statusBox('warning', 'Wrong Page',
-      'Please navigate to a Nomi\'s private chat page or Shared Notes page, then click the export button.'
+      'Please navigate to a Nomi\'s private chat page or Shared Notes page, then try again.'
     );
     box.appendChild(document.createElement('br'));
     box.appendChild(document.createElement('br'));
@@ -219,15 +276,15 @@ async function init() {
   }
 }
 
-// Extract directly — already on the shared notes page
-async function extractFromTab(tabId) {
-  render(statusBox('working', 'Extracting\u2026', 'Reading Shared Notes, please wait.'));
+// Export directly — already on the shared notes page
+async function exportFromTab(tabId) {
+  render(statusBox('working', 'Exporting\u2026', 'Reading Shared Notes, please wait.'));
   startResultTimeout(20000);
   try {
     // Clear any stale result from a previous run
     await browser.tabs.executeScript(tabId, { code: 'window.__nomiExportResult = null;' });
     await browser.tabs.executeScript(tabId, { file: 'content.js' });
-    const result = await pollForResult(tabId, 15000);
+    const result = await pollForExportResult(tabId, 15000);
     clearResultTimeout();
     if (result) {
       showResult(result);
@@ -236,35 +293,28 @@ async function extractFromTab(tabId) {
     }
   } catch (err) {
     clearResultTimeout();
-    showResult({ success: false, error: err.message || 'Extraction failed.' });
+    showResult({ success: false, error: err.message || 'Export failed.' });
   }
 }
 
-// Navigate to shared notes first, then extract
-async function navigateAndExtract(tabId, url) {
+// Navigate to shared notes page (no auto-export)
+async function navigateToSharedNotes(tabId, url) {
   render(statusBox('working', 'Navigating\u2026', 'Loading Shared Notes page, please wait.'));
   startResultTimeout(35000);
   try {
     await browser.tabs.update(tabId, { url });
     await waitForTabLoad(tabId, 15000);
     await waitForTextareas(tabId, 10000);
-    // Clear any stale result, then inject
-    await browser.tabs.executeScript(tabId, { code: 'window.__nomiExportResult = null;' });
-    await browser.tabs.executeScript(tabId, { file: 'content.js' });
-    const result = await pollForResult(tabId, 15000);
     clearResultTimeout();
-    if (result) {
-      showResult(result);
-    } else {
-      showResult({ success: false, error: 'No response from content script.' });
-    }
+    // Navigation complete — re-init to show Ready state with Export/Import
+    init();
   } catch (err) {
     clearResultTimeout();
     showResult({ success: false, error: err.message || 'Could not load the Shared Notes page.' });
   }
 }
 
-// Display the extraction result in the popup
+// Display the export result in the popup
 function showResult(msg) {
   if (msg.success) {
     const nameDiv = document.createElement('div');
@@ -286,7 +336,7 @@ function showResult(msg) {
     const errorText = msg.error || 'Could not read the page. Make sure you are on the Shared Notes page and it has fully loaded.';
     const retryBtn = makeButton('btn-navigate', 'btn-retry', 'Try Again');
     render(
-      statusBox('warning', 'Export Failed', errorText),
+      statusBox('warning', 'Export failed', errorText),
       retryBtn
     );
     retryBtn.addEventListener('click', init);

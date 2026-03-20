@@ -1,4 +1,4 @@
-// content.js — extracts shared notes fields and triggers download (runs in page context)
+// content.js — exports shared notes fields and triggers download (runs in page context)
 
 (async function () {
   if (window.__nomiExporterRunning) return;
@@ -128,7 +128,7 @@
 
     if (fieldValues.length === 0) {
       sendMessage({
-        action: 'extractResult',
+        action: 'exportResult',
         success: false,
         error: 'No text fields found. Make sure you are on the Shared Notes page.'
       });
@@ -143,7 +143,7 @@
     download(filename, output);
 
     sendMessage({
-      action: 'extractResult',
+      action: 'exportResult',
       success: true,
       nomiName: nomiName,
       filename: filename
@@ -151,9 +151,9 @@
 
   } catch (err) {
     sendMessage({
-      action: 'extractResult',
+      action: 'exportResult',
       success: false,
-      error: err.message || 'Unknown error during extraction.'
+      error: err.message || 'Unknown error during export.'
     });
   }
 
