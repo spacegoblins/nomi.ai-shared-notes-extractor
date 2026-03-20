@@ -1,16 +1,11 @@
-// content.js — runs on the shared-notes page, reads fields, triggers download
+// content.js — extracts shared notes fields and triggers download (runs in page context)
 
 (async function () {
-  // Prevent double-execution if injected multiple times
   if (window.__nomiExporterRunning) return;
   window.__nomiExporterRunning = true;
 
   const FIELD_DEFINITIONS = [
-    {
-      key: 'backstory',
-      label: 'BACKSTORY',
-      // Field placeholders and labels we can use to identify textareas in order
-    },
+    { key: 'backstory',           label: 'BACKSTORY' },
     { key: 'inclination',         label: 'INCLINATION' },
     { key: 'currentRoleplay',     label: 'CURRENT ROLEPLAY' },
     { key: 'yourAppearance',      label: 'YOUR APPEARANCE' },
@@ -22,17 +17,18 @@
     { key: 'boundaries',          label: 'BOUNDARIES' },
   ];
 
+  // Content scripts run in page context, so this sleep is separate from background.js
   function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
   }
 
-  // Scroll the page top-to-bottom to force React to render all virtualized fields
+  // Scroll top-to-bottom to force React to render all virtualized fields
   async function scrollToRevealAll() {
     const scrollStep = 400;
     const delay = 80;
-    const total = document.body.scrollHeight;
     let pos = 0;
-    while (pos < total) {
+    // Re-check scrollHeight each iteration — page may grow as content renders
+    while (pos < document.body.scrollHeight) {
       window.scrollTo(0, pos);
       await sleep(delay);
       pos += scrollStep;
@@ -41,35 +37,35 @@
     await sleep(300);
   }
 
-  // Extract Nomi name from page title — format is "Shared Notes | Dalia | Nomi.ai"
   function getNomiName() {
     const parts = document.title.split('|').map(s => s.trim());
-    // Find the part that isn't "Shared Notes" and isn't "Nomi.ai"
     for (const part of parts) {
       if (part && !/shared notes/i.test(part) && !/nomi\.ai/i.test(part)) {
         return part;
       }
     }
-    // Fall back to URL ID if title parsing fails
     const urlMatch = window.location.pathname.match(/\/nomis\/(\d+)/);
     return urlMatch ? `Nomi_${urlMatch[1]}` : 'Nomi';
   }
 
-  // Get Nomi ID from URL
   function getNomiId() {
     const m = window.location.pathname.match(/\/nomis\/(\d+)/);
     return m ? m[1] : 'unknown';
   }
 
-  // Read all textareas in DOM order — Nomi renders them top-to-bottom matching field order
   function readTextareas() {
     const textareas = Array.from(document.querySelectorAll('textarea'));
     return textareas.map(ta => ta.value ? ta.value.trim() : '');
   }
 
-  // Build the output .txt content
+  function getTimestamp() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${now.getFullYear()}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  }
+
   function buildOutput(nomiName, nomiId, fieldValues) {
-    const divider = '═'.repeat(50);
+    const divider = '\u2550'.repeat(50);
     const now = new Date().toLocaleString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
@@ -77,12 +73,17 @@
 
     const lines = [
       divider,
-      `${nomiName.toUpperCase()} — SHARED NOTES`,
+      `${nomiName.toUpperCase()} \u2014 SHARED NOTES`,
       `Exported: ${now}`,
       `Nomi ID (From URL): ${nomiId}`,
       divider,
       '',
     ];
+
+    if (fieldValues.length !== FIELD_DEFINITIONS.length) {
+      lines.push(`\u26A0 WARNING: Expected ${FIELD_DEFINITIONS.length} fields, found ${fieldValues.length} \u2014 some labels may be misaligned.`);
+      lines.push('');
+    }
 
     FIELD_DEFINITIONS.forEach((field, i) => {
       const value = fieldValues[i] || '';
@@ -97,7 +98,6 @@
     return lines.join('\n');
   }
 
-  // Trigger a .txt file download
   function download(filename, text) {
     const blob = new Blob([text], { type: 'text/plain; charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -110,12 +110,13 @@
     URL.revokeObjectURL(url);
   }
 
+  function sendMessage(msg) {
+    browser.runtime.sendMessage(msg).catch(() => {});
+  }
+
   // --- Main ---
   try {
-    // Scroll to force all React components to render
     await scrollToRevealAll();
-
-    // Give React one more tick to settle after scroll
     await sleep(500);
 
     const nomiName = getNomiName();
@@ -123,7 +124,7 @@
     const fieldValues = readTextareas();
 
     if (fieldValues.length === 0) {
-      browser.runtime.sendMessage({
+      sendMessage({
         action: 'extractResult',
         success: false,
         error: 'No text fields found. Make sure you are on the Shared Notes page.'
@@ -133,18 +134,19 @@
     }
 
     const output = buildOutput(nomiName, nomiId, fieldValues);
-    const filename = `${nomiName.replace(/[^a-z0-9]/gi, '_')}_Shared_Notes.txt`;
+    const timestamp = getTimestamp();
+    const filename = `${nomiName.replace(/[^a-z0-9]/gi, '_')}_Shared_Notes.${timestamp}.txt`;
 
     download(filename, output);
 
-    browser.runtime.sendMessage({
+    sendMessage({
       action: 'extractResult',
       success: true,
       nomiName: nomiName
     });
 
   } catch (err) {
-    browser.runtime.sendMessage({
+    sendMessage({
       action: 'extractResult',
       success: false,
       error: err.message || 'Unknown error during extraction.'
