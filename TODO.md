@@ -59,4 +59,4 @@ Example: `Dalia_Shared_Notes.03-20-2026-1435.txt`
 3. Refactor content.js scroll logic and field validation (items 2 + 3)
 4. Polish pass across all files (item 4)
 5. Test end-to-end: chat page → navigate → extract → download
-6. Test edge cases: slow load, wrong page, missing textareas
+6. Test edge cases: slow load, wrong page, missing textareas.

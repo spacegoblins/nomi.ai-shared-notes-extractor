@@ -111,6 +111,9 @@
   }
 
   function sendMessage(msg) {
+    // Set result on window so popup can poll for it via executeScript
+    window.__nomiExportResult = msg;
+    // Also try runtime.sendMessage as a belt-and-suspenders fallback
     browser.runtime.sendMessage(msg).catch(() => {});
   }
 
@@ -142,7 +145,8 @@
     sendMessage({
       action: 'extractResult',
       success: true,
-      nomiName: nomiName
+      nomiName: nomiName,
+      filename: filename
     });
 
   } catch (err) {
