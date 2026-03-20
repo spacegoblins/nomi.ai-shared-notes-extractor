@@ -2,15 +2,17 @@
 
 ## Overview:
 
-Nomi.AI Shared Notes Extractor is a Firefox browser extension designed to simplify the process of exporting your Nomi's entire Shared Notes to a simple, human readable .txt file. This is useful for planning, archiving, shared notes version control, sharing with other users, and more.
+Nomi.AI Shared Notes Extractor is a Firefox browser extension designed to add a powerful tool to the Shared Notes Page of your Nomi: A way to import, export, and manage you Nomi's Shared Notes as a human readable **.txt** or **.md** file. You can also work with a **.csv** if you're using the tool for version control, archiving, or some other Nomi mad science.
 
-Take a look at the code before using it. If you're a developer, and have a suggestion to improve this tool, send me an email at spacegoblins@protonmail.com. You're also welcome to modify this extension and upload it to the mozilla store under a new name.
+Modify, transfer, share, and archive your shared notes like never before.
 
 This extension is designed for Desktop.
 
 🛑 NOTE: This tool is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. 
-This extension will never be for sale, display ads, collect your data, or do anything other than the simple operation outlined above. 
-The source code of this extension is open and available for you to read. Do NOT install or use this extension unless you trust the publisher or are able to inspect the code verify that it is safe.
+This extension will never be for sale, display ads, sell your data to big tech, or do anything other than the simple operation outlined above. 
+The source code of this extension is open and available for you to read (click About to go to the Github repo).
+
+Do NOT install or use this extension unless you trust the publisher or are able to inspect the code verify that it is safe.
 
 ## Installation:
 
@@ -21,13 +23,13 @@ The source code of this extension is open and available for you to read. Do NOT 
 
 ## Usage:
 
-1. Navigate to your Nomi's private chat OR their Shared Notes page at beta.nomi.ai
-2. Click the Extensions button (puzzle icon) in the top right of Firefox
-3. Click the Nomi.ai Shared Notes Extractor extension
-4. Click "Export .txt"
-5. Check your browser's default downloads folder for the text file
+1. Navigate to your Nomi's Shared Notes page at https://beta.nomi.ai/nomis/<somenumber>/shared-notes
+2. Review the new buttons added to the page
+3. Import: Select a .txt, .md, or .csv file from your device to upload and autofill to the appropriate fields
+4. Export: Save your Nomi's current Shared Notes into a human readable .txt, .md, or a database-friendly .csv
+5. Settings: Use this to configure your preferred filetypes. These settings will sync across devices/sessions if you're logged in to Firefox
 
-You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.txt'. You can rename these for version control if you like.
+You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.somefiletype'. You can rename these for version control if you like.
 
 ## Future Updates:
 
