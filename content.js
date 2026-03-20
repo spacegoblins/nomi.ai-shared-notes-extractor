@@ -1,8 +1,13 @@
 // content.js — exports shared notes fields and triggers download (runs in page context)
+// v1.3 — multi-format export (.txt, .md, .csv), refactored structure
 
 (async function () {
   if (window.__nomiExporterRunning) return;
   window.__nomiExporterRunning = true;
+
+  // ============================================================
+  // Shared Utilities
+  // ============================================================
 
   const FIELD_DEFINITIONS = [
     { key: 'backstory',           label: 'BACKSTORY' },
@@ -17,17 +22,14 @@
     { key: 'boundaries',          label: 'BOUNDARIES' },
   ];
 
-  // Content scripts run in page context, so this sleep is separate from background.js
   function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
   }
 
-  // Scroll top-to-bottom to force React to render all virtualized fields
   async function scrollToRevealAll() {
     const scrollStep = 400;
     const delay = 80;
     let pos = 0;
-    // Re-check scrollHeight each iteration — page may grow as content renders
     while (pos < document.body.scrollHeight) {
       window.scrollTo(0, pos);
       await sleep(delay);
@@ -64,29 +66,45 @@
     return `${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${now.getFullYear()}-${pad(now.getHours())}${pad(now.getMinutes())}`;
   }
 
-  function buildOutput(nomiName, nomiId, fieldValues) {
-    const divider = '\u2550'.repeat(50);
-    const now = new Date().toLocaleString('en-US', {
+  function getReadableDate() {
+    return new Date().toLocaleString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+  }
 
+  // Gather all structured data needed by formatters
+  function collectExportData() {
+    const nomiName = getNomiName();
+    const nomiId = getNomiId();
+    const fieldValues = readTextareas();
+    const timestamp = getTimestamp();
+    const readableDate = getReadableDate();
+    return { nomiName, nomiId, fieldValues, timestamp, readableDate };
+  }
+
+  // ============================================================
+  // Format Builders
+  // ============================================================
+
+  function buildTxt(data) {
+    const divider = '\u2550'.repeat(50);
     const lines = [
       divider,
-      `${nomiName.toUpperCase()} \u2014 SHARED NOTES`,
-      `Exported: ${now}`,
-      `Nomi ID (From URL): ${nomiId}`,
+      `${data.nomiName.toUpperCase()} \u2014 SHARED NOTES`,
+      `Exported: ${data.readableDate}`,
+      `Nomi ID (From URL): ${data.nomiId}`,
       divider,
       '',
     ];
 
-    if (fieldValues.length !== FIELD_DEFINITIONS.length) {
-      lines.push(`\u26A0 WARNING: Expected ${FIELD_DEFINITIONS.length} fields, found ${fieldValues.length} \u2014 some labels may be misaligned.`);
+    if (data.fieldValues.length !== FIELD_DEFINITIONS.length) {
+      lines.push(`\u26A0 WARNING: Expected ${FIELD_DEFINITIONS.length} fields, found ${data.fieldValues.length} \u2014 some labels may be misaligned.`);
       lines.push('');
     }
 
     FIELD_DEFINITIONS.forEach((field, i) => {
-      const value = fieldValues[i] || '';
+      const value = data.fieldValues[i] || '';
       lines.push(`${field.label}:`);
       lines.push(value !== '' ? `\`${value}\`` : '(empty)');
       lines.push('');
@@ -94,12 +112,69 @@
 
     lines.push(divider);
     lines.push('');
+    return lines.join('\n');
+  }
+
+  function buildMd(data) {
+    const lines = [
+      `# ${data.nomiName} \u2014 Shared Notes`,
+      '',
+      `**Exported:** ${data.readableDate}  `,
+      `**Nomi ID:** ${data.nomiId}`,
+      '',
+      '---',
+      '',
+    ];
+
+    if (data.fieldValues.length !== FIELD_DEFINITIONS.length) {
+      lines.push(`> \u26A0 **WARNING:** Expected ${FIELD_DEFINITIONS.length} fields, found ${data.fieldValues.length} \u2014 some labels may be misaligned.`);
+      lines.push('');
+    }
+
+    FIELD_DEFINITIONS.forEach((field, i) => {
+      const value = data.fieldValues[i] || '';
+      lines.push(`## ${field.label}`);
+      lines.push('');
+      lines.push(value !== '' ? value : '*(empty)*');
+      lines.push('');
+    });
 
     return lines.join('\n');
   }
 
-  function download(filename, text) {
-    const blob = new Blob([text], { type: 'text/plain; charset=utf-8' });
+  function csvEscape(value) {
+    if (value === '') return '""';
+    // Wrap in quotes if the value contains commas, quotes, or newlines
+    if (/[",\n\r]/.test(value)) {
+      return '"' + value.replace(/"/g, '""') + '"';
+    }
+    return value;
+  }
+
+  function buildCsv(data) {
+    const headers = [
+      'nomi_name',
+      'nomi_id',
+      'export_timestamp',
+      ...FIELD_DEFINITIONS.map(f => f.key.replace(/([A-Z])/g, '_$1').toLowerCase())
+    ];
+
+    const values = [
+      csvEscape(data.nomiName),
+      csvEscape(data.nomiId),
+      csvEscape(data.readableDate),
+      ...FIELD_DEFINITIONS.map((_, i) => csvEscape(data.fieldValues[i] || ''))
+    ];
+
+    return headers.join(',') + '\n' + values.join(',') + '\n';
+  }
+
+  // ============================================================
+  // Download
+  // ============================================================
+
+  function download(filename, text, mimeType) {
+    const blob = new Blob([text], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -111,22 +186,21 @@
   }
 
   function sendMessage(msg) {
-    // Set result on window so popup can poll for it via executeScript
     window.__nomiExportResult = msg;
-    // Also try runtime.sendMessage as a belt-and-suspenders fallback
     browser.runtime.sendMessage(msg).catch(() => {});
   }
 
-  // --- Main ---
+  // ============================================================
+  // Main Export
+  // ============================================================
+
   try {
     await scrollToRevealAll();
     await sleep(500);
 
-    const nomiName = getNomiName();
-    const nomiId = getNomiId();
-    const fieldValues = readTextareas();
+    const data = collectExportData();
 
-    if (fieldValues.length === 0) {
+    if (data.fieldValues.length === 0) {
       sendMessage({
         action: 'exportResult',
         success: false,
@@ -136,17 +210,35 @@
       return;
     }
 
-    const output = buildOutput(nomiName, nomiId, fieldValues);
-    const timestamp = getTimestamp();
-    const filename = `${nomiName.replace(/[^a-z0-9]/gi, '_')}_Shared_Notes.${timestamp}.txt`;
+    // Read selected formats from window (set by popup before injection)
+    const formats = window.__nomiExportFormats || { txt: true };
+    const fileBase = `${data.nomiName.replace(/[^a-z0-9]/gi, '_')}_Shared_Notes.${data.timestamp}`;
+    const downloaded = [];
 
-    download(filename, output);
+    if (formats.txt) {
+      const filename = `${fileBase}.txt`;
+      download(filename, buildTxt(data), 'text/plain; charset=utf-8');
+      downloaded.push(filename);
+    }
+
+    if (formats.md) {
+      const filename = `${fileBase}.md`;
+      download(filename, buildMd(data), 'text/markdown; charset=utf-8');
+      downloaded.push(filename);
+    }
+
+    if (formats.csv) {
+      const filename = `${fileBase}.csv`;
+      download(filename, buildCsv(data), 'text/csv; charset=utf-8');
+      downloaded.push(filename);
+    }
 
     sendMessage({
       action: 'exportResult',
       success: true,
-      nomiName: nomiName,
-      filename: filename
+      nomiName: data.nomiName,
+      fileCount: downloaded.length,
+      filenames: downloaded
     });
 
   } catch (err) {

@@ -399,8 +399,11 @@ async function exportFromTab(tabId) {
   render(statusBox('working', 'Exporting\u2026', 'Reading Shared Notes, please wait.'));
   startResultTimeout(20000);
   try {
-    // Clear any stale result from a previous run
-    await browser.tabs.executeScript(tabId, { code: 'window.__nomiExportResult = null;' });
+    // Clear any stale result and pass selected formats to content script
+    const formats = JSON.stringify(settings.exportFormats);
+    await browser.tabs.executeScript(tabId, {
+      code: `window.__nomiExportResult = null; window.__nomiExportFormats = ${formats};`
+    });
     await browser.tabs.executeScript(tabId, { file: 'content.js' });
     const result = await pollForExportResult(tabId, 15000);
     clearResultTimeout();
@@ -435,13 +438,14 @@ async function navigateToSharedNotes(tabId, url) {
 // Display the export result in the popup
 function showResult(msg) {
   if (msg.success) {
+    const fileCount = msg.fileCount || 1;
     const nameDiv = document.createElement('div');
     Object.assign(nameDiv.style, { textAlign: 'center', fontSize: '13px', fontWeight: '600' });
-    nameDiv.textContent = msg.filename || msg.nomiName;
+    nameDiv.textContent = msg.nomiName || 'Export complete';
 
     const savedDiv = document.createElement('div');
     Object.assign(savedDiv.style, { textAlign: 'center', fontSize: '11px', color: '#86efac', marginTop: '4px' });
-    savedDiv.textContent = 'Saved to Downloads';
+    savedDiv.textContent = `Saved ${fileCount} file${fileCount !== 1 ? 's' : ''} to Downloads`;
 
     render(
       el('div', 'status-box ready',
