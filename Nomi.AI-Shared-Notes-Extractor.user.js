@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nomi.AI Shared Notes Extractor
 // @namespace    https://github.com/spacegoblins/nomi.ai-shared-notes-extractor
-// @version      1.0
+// @version      1.1
 // @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
 // @author       spacegoblins
 // @license      MIT
@@ -9,7 +9,6 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
-// @grant        GM_info
 // @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
 // @downloadURL  https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
@@ -725,7 +724,6 @@
       return;
     }
 
-    let written = 0;
     for (let i = 0; i < values.length && i < textareas.length; i++) {
       const ta = textareas[i];
       const nativeSetter = Object.getOwnPropertyDescriptor(
@@ -734,7 +732,6 @@
       nativeSetter.call(ta, values[i]);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
-      written++;
     }
 
     showToast('Import complete. Expand each section and press Save.', 'success', 8000);
@@ -829,12 +826,12 @@
 
     const importBtn = document.createElement('button');
     importBtn.className = 'nomi-ext-btn nomi-ext-btn-import';
-    importBtn.textContent = ' Import ';
+    importBtn.textContent = 'Import';
     importBtn.addEventListener('click', handleImport);
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'nomi-ext-btn nomi-ext-btn-export';
-    exportBtn.textContent = ' Export ';
+    exportBtn.textContent = 'Export';
     exportBtn.addEventListener('click', handleExport);
 
     // Wire settings button now that exportBtn exists
