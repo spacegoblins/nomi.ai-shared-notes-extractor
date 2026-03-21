@@ -1,5 +1,18 @@
-// inject.js — auto-injected content script for Shared Notes pages
-// Adds Import/Export buttons to the page header and handles all import/export logic in-page.
+// ==UserScript==
+// @name         Nomi.AI Shared Notes Extractor
+// @namespace    https://github.com/spacegoblins/nomi.ai-shared-notes-extractor
+// @version      1.0
+// @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
+// @author       spacegoblins
+// @match        *://beta.nomi.ai/nomis/*/shared-notes*
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_addStyle
+// @grant        GM_info
+// @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
+// @downloadURL  https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
+// ==/UserScript==
 
 (function () {
   'use strict';
@@ -7,6 +20,212 @@
   // Guard: don't inject twice
   if (window.__nomiExtInjected) return;
   window.__nomiExtInjected = true;
+
+  // ── Styles ──
+
+  GM_addStyle(`
+/* Nomi.AI Shared Notes Extractor — injected styles */
+/* All selectors scoped with nomi-ext- prefix to avoid conflicts */
+
+/* Button container */
+.nomi-ext-btn-group {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+/* Pipe divider */
+.nomi-ext-divider {
+  font-family: 'Urbanist', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30.8px;
+  color: rgb(201, 201, 201);
+  user-select: none;
+}
+
+/* Shared button base — matches header h3 styling */
+.nomi-ext-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30.8px;
+  color: rgb(201, 201, 201);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.nomi-ext-btn:hover { color: #fff; }
+.nomi-ext-btn:active { color: #e0e0e0; }
+
+/* Settings button — slightly smaller to feel like an icon */
+.nomi-ext-btn-settings {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ── Modal overlay ── */
+.nomi-ext-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  font-family: 'Urbanist', sans-serif;
+}
+
+.nomi-ext-modal {
+  background: #1f222a;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  padding: 20px 24px;
+  max-width: 420px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #e4e4e7;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.nomi-ext-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: #e4e4e7;
+}
+
+.nomi-ext-modal-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d4d4d8;
+}
+
+.nomi-ext-modal-warning {
+  font-size: 11px;
+  color: #fca5a5;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.nomi-ext-modal-info {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.nomi-ext-modal-field-warn {
+  font-size: 11px;
+  color: #fcd34d;
+  margin-bottom: 8px;
+}
+
+/* ── Modal action buttons ── */
+.nomi-ext-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: flex-end;
+}
+
+.nomi-ext-modal-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.nomi-ext-modal-btn:hover { opacity: 0.85; }
+
+.nomi-ext-modal-btn-confirm {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.nomi-ext-modal-btn-cancel {
+  background: #3f3f46;
+  color: #e4e4e7;
+}
+
+/* ── Toast ── */
+.nomi-ext-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100000;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation: nomi-ext-fadein 0.2s ease;
+}
+
+.nomi-ext-toast-success {
+  background: #14532d;
+  border: 1px solid #166534;
+  color: #86efac;
+}
+
+.nomi-ext-toast-error {
+  background: #7f1d1d;
+  border: 1px solid #991b1b;
+  color: #fca5a5;
+}
+
+@keyframes nomi-ext-fadein {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Settings panel ── */
+.nomi-ext-settings-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.nomi-ext-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.nomi-ext-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #e4e4e7;
+}
+
+.nomi-ext-checkbox-row input[type="checkbox"] {
+  accent-color: #818cf8;
+  width: 14px;
+  height: 14px;
+}
+
+.nomi-ext-settings-link {
+  font-size: 11px;
+  color: #818cf8;
+  text-decoration: underline;
+}
+`);
 
   // ── Field Definitions ──
 
@@ -33,20 +252,24 @@
     exportFormats: { txt: true, md: false, csv: false },
   };
 
-  async function loadSettings() {
+  function loadSettings() {
     try {
-      const stored = await browser.storage.sync.get('settings');
-      if (stored.settings) {
-        return Object.assign(structuredClone(DEFAULT_SETTINGS), stored.settings);
+      const stored = GM_getValue('settings', null);
+      if (stored) {
+        return Object.assign(structuredClone(DEFAULT_SETTINGS), stored);
       }
     } catch (e) { /* storage unavailable */ }
     return structuredClone(DEFAULT_SETTINGS);
   }
 
+  function saveSettings(settings) {
+    GM_setValue('settings', settings);
+  }
+
   function getSelectedFormatLabels(settings) {
     const labels = [];
     if (settings.exportFormats.txt) labels.push('.txt');
-    if (settings.exportFormats.md) labels.push('.md');
+    if (settings.exportFormats.md)  labels.push('.md');
     if (settings.exportFormats.csv) labels.push('.csv');
     return labels;
   }
@@ -363,10 +586,10 @@
   // ── Export Flow ──
 
   async function handleExport() {
-    const settings = await loadSettings();
+    const settings = loadSettings();
     const fmts = settings.exportFormats;
     if (!fmts.txt && !fmts.md && !fmts.csv) {
-      showToast('No export formats selected. Check Settings in the extension popup.', 'error');
+      showToast('No export formats selected. Open \u2699 Settings to choose a format.', 'error');
       return;
     }
 
@@ -449,20 +672,17 @@
   function showImportConfirmation(fields, warnings, filename) {
     const bodyNodes = [];
 
-    // File info
     const fileDiv = document.createElement('div');
     fileDiv.className = 'nomi-ext-modal-info';
     fileDiv.textContent = `File: ${filename}`;
     bodyNodes.push(fileDiv);
 
-    // Field count
     const filledCount = FIELD_DEFINITIONS.filter(f => fields[f.key] && fields[f.key].trim() !== '').length;
     const countDiv = document.createElement('div');
     countDiv.className = 'nomi-ext-modal-info';
     countDiv.textContent = `${filledCount} of ${FIELD_DEFINITIONS.length} fields have values.`;
     bodyNodes.push(countDiv);
 
-    // Warnings for missing fields
     if (warnings.length > 0) {
       const warnDiv = document.createElement('div');
       warnDiv.className = 'nomi-ext-modal-field-warn';
@@ -470,7 +690,6 @@
       bodyNodes.push(warnDiv);
     }
 
-    // Destructive warnings
     const warningLines = [
       'This operation is destructive and cannot be undone.',
       'You are responsible for creating a backup of your current Shared Notes before importing.',
@@ -517,10 +736,67 @@
       written++;
     }
 
-    showToast(
-      `Import complete. Expand each section and press Save.`,
-      'success', 8000
-    );
+    showToast('Import complete. Expand each section and press Save.', 'success', 8000);
+  }
+
+  // ── Settings Flow ──
+
+  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor';
+
+  function showSettings(exportBtn) {
+    const settings = loadSettings();
+    const bodyNodes = [];
+
+    const desc = document.createElement('div');
+    desc.className = 'nomi-ext-settings-desc';
+    desc.textContent = 'Select which formats to include when exporting:';
+    bodyNodes.push(desc);
+
+    const form = document.createElement('div');
+    form.className = 'nomi-ext-settings-form';
+
+    const formats = [
+      { key: 'txt', label: 'Plain Text (.txt)' },
+      { key: 'md',  label: 'Markdown (.md)' },
+      { key: 'csv', label: 'CSV (.csv)' },
+    ];
+
+    for (const fmt of formats) {
+      const row = document.createElement('label');
+      row.className = 'nomi-ext-checkbox-row';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!settings.exportFormats[fmt.key];
+      cb.addEventListener('change', () => {
+        settings.exportFormats[fmt.key] = cb.checked;
+        // Ensure at least one format stays selected
+        const anyChecked = Object.values(settings.exportFormats).some(v => v);
+        if (!anyChecked) {
+          settings.exportFormats[fmt.key] = true;
+          cb.checked = true;
+        }
+        saveSettings(settings);
+        updateExportLabel(exportBtn);
+      });
+
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(fmt.label));
+      form.appendChild(row);
+    }
+    bodyNodes.push(form);
+
+    const linkDiv = document.createElement('div');
+    const link = document.createElement('a');
+    link.href = REPO_URL;
+    link.textContent = 'View on GitHub';
+    link.className = 'nomi-ext-settings-link';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    linkDiv.appendChild(link);
+    bodyNodes.push(linkDiv);
+
+    showModal('Export Settings', bodyNodes, []);
   }
 
   // ── Button Injection ──
@@ -528,8 +804,8 @@
   const HEADER_SELECTOR = 'header.ChatSubPage_header__fGTaa';
   const BUTTON_GROUP_ID = 'nomi-ext-btn-group';
 
-  async function updateExportLabel(btn) {
-    const settings = await loadSettings();
+  function updateExportLabel(btn) {
+    const settings = loadSettings();
     const labels = getSelectedFormatLabels(settings);
     btn.textContent = `Export [${labels.join(', ')}]`;
   }
@@ -545,29 +821,33 @@
     group.className = 'nomi-ext-btn-group';
     group.id = BUTTON_GROUP_ID;
 
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'nomi-ext-btn nomi-ext-btn-settings';
+    settingsBtn.textContent = '\u2699';
+    settingsBtn.title = 'Export Settings';
+
     const importBtn = document.createElement('button');
     importBtn.className = 'nomi-ext-btn nomi-ext-btn-import';
-    importBtn.textContent = 'Import';
+    importBtn.textContent = ' Import ';
     importBtn.addEventListener('click', handleImport);
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'nomi-ext-btn nomi-ext-btn-export';
-    exportBtn.textContent = 'Export';
+    exportBtn.textContent = ' Export ';
     exportBtn.addEventListener('click', handleExport);
 
-    // Load the label with format info
-    updateExportLabel(exportBtn);
+    // Wire settings button now that exportBtn exists
+    settingsBtn.addEventListener('click', () => showSettings(exportBtn));
 
-    // Listen for settings changes to update the label
-    browser.storage.onChanged.addListener((changes) => {
-      if (changes.settings) updateExportLabel(exportBtn);
-    });
+    // Set initial export label
+    updateExportLabel(exportBtn);
 
     const divider = document.createElement('span');
     divider.className = 'nomi-ext-divider';
     divider.textContent = '|';
 
     group.appendChild(divider);
+    group.appendChild(settingsBtn);
     group.appendChild(importBtn);
     group.appendChild(exportBtn);
     header.appendChild(group);

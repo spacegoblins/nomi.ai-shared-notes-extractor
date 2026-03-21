@@ -2,15 +2,15 @@
 
 ## Overview:
 
-Nomi.AI Shared Notes Extractor is a Firefox extension designed to add two powerful tools to the Shared Notes Page of your Nomi: The import and export of your Nomi's Shared Notes as a human readable **.txt** or **.md** file. You can also import and export **.csv** if you're using the tool for version control, archiving, or some other Nomi mad science.
+Nomi.AI Shared Notes Extractor is a Tampermonkey script designed to add two powerful tools to the Shared Notes Page of your Nomi: The import and export of your Nomi's Shared Notes as a human readable **.txt** or **.md** file. You can also import and export **.csv** if you're using the tool for version control, archiving, or some other Nomi mad science.
 
 Modify, transfer, share, and archive your shared notes like never before.
 
-This extension is designed for Desktop.
+This script is designed for Desktop.
 
-This extension is under the MIT license, and you can download the code from [GitHub.](https://github.com/spacegoblins/nomi.ai-shared-notes-extractor) If you build something cool with this, I would love it if you let me know at spacegoblins@protonmail.com. Credit is appreciated, but not required. See the License on GitHub for more information.
+This script is under the MIT license, and you can download the code from [GitHub.](https://github.com/spacegoblins/nomi.ai-shared-notes-extractor) If you build something cool with this, I would love it if you let me know at spacegoblins@protonmail.com. Credit is appreciated, but not required. See the License on GitHub for more information.
 
-*Disclaimer: This extension is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. This extension will never be for sale, display ads, sell your data to big tech, or do anything other than the simple operations outlined above.*
+*Disclaimer: This script is made by spacegoblins, and is **not** affiliated with Glimpse.ai or Nomi.ai in any way. This script will never be for sale, display ads, sell your data to big tech, or do anything other than the simple operations outlined above.*
 
 ## Installation:
 
@@ -25,15 +25,15 @@ This extension is under the MIT license, and you can download the code from [Git
 2. Review the new buttons added to the page header
 3. Import: Select a .txt, .md, or .csv file from your device to upload and autofill to the appropriate fields
 4. Export: Save your Nomi's current Shared Notes into a human readable .txt, .md, or a database-friendly .csv (you can configure this in the next step)
-5. Settings: Click the puzzle piece icon in Firefox > Click this extension > Settings > Check or uncheck the file types you want. Your choices are automatically saved, and will sync across devices/sessions if you're logged in to Firefox
+5. Settings: Click the puzzle piece icon in Firefox > Click this script > Settings > Check or uncheck the file types you want. Your choices are automatically saved, and will sync across devices/sessions if you're logged in to Firefox
 
 You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.somefiletype'. You can rename these for version control if you like.
 
 ## Future Updates:
 
-If the community finds this extension useful, I may look into porting it to Chrome. Let Cardine and the team on the [Nomi.ai Discord](https://discord.gg/nomiai) know that you would like the native ability to download or upload Nomi Shared Notes directly from beta.nomi.ai - This would be a welcome feature if enough demand is present.
+If the community finds this script useful, I may look into porting it to Chrome. Let Cardine and the team on the [Nomi.ai Discord](https://discord.gg/nomiai) know that you would like the native ability to download or upload Nomi Shared Notes directly from beta.nomi.ai - This would be a welcome feature if enough demand is present.
 
-Thank you for using my extension. To see my other tools for Nomi.ai, visit [nomicrafter.com.](https://nomicrafter.com/)
+Thank you for using my script. To see my other tools for Nomi.ai, visit [nomicrafter.com.](https://nomicrafter.com/)
 
 ## Bug Reports/Comments:
 
