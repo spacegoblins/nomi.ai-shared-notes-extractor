@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nomi.AI Shared Notes Extractor
 // @namespace    https://github.com/spacegoblins/nomi.ai-shared-notes-extractor
-// @version      1.1
+// @version      1.2
 // @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
 // @author       spacegoblins
 // @license      MIT
@@ -693,7 +693,7 @@
     const warningLines = [
       'This operation is destructive and cannot be undone.',
       'You are responsible for creating a backup of your current Shared Notes before importing.',
-      'After import, you must expand each section and manually press Save to commit the changes.',
+      'After import, each section will be expanded automatically. You must press Save in each one to commit the changes.',
     ];
     for (const line of warningLines) {
       const p = document.createElement('div');
@@ -715,6 +715,25 @@
     ]);
   }
 
+  function expandSection(ta) {
+    // Walk up from the textarea looking for a direct-child accordion toggle button.
+    // :scope > button limits the search to immediate children only, so we don't
+    // accidentally match toggles from sibling or nested sections.
+    let el = ta.parentElement;
+    let depth = 0;
+    while (el && el !== document.body && depth < 12) {
+      const collapsed = el.querySelector(':scope > button[aria-expanded="false"]');
+      if (collapsed) {
+        collapsed.click();
+        return;
+      }
+      // Already expanded at this level — nothing to do.
+      if (el.querySelector(':scope > button[aria-expanded="true"]')) return;
+      el = el.parentElement;
+      depth++;
+    }
+  }
+
   function executeImport(fields) {
     const values = FIELD_DEFINITIONS.map(f => fields[f.key] || '');
     const textareas = Array.from(document.querySelectorAll('textarea'));
@@ -726,15 +745,18 @@
 
     for (let i = 0; i < values.length && i < textareas.length; i++) {
       const ta = textareas[i];
+      const previousValue = ta.value.trim();
+      const newValue = values[i];
       const nativeSetter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype, 'value'
       ).set;
-      nativeSetter.call(ta, values[i]);
+      nativeSetter.call(ta, newValue);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
+      if (newValue !== previousValue) expandSection(ta);
     }
 
-    showToast('Import complete. Expand each section and press Save.', 'success', 8000);
+    showToast('Import complete. Review each section and press Save.', 'success', 8000);
   }
 
   // ── Settings Flow ──

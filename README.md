@@ -22,9 +22,9 @@ This script is under the MIT license, and you can download the code from [GitHub
 
 1. Navigate to your Nomi's Shared Notes page at 'https://beta.nomi.ai/nomis/somenumber/shared-notes'
 2. Review the new buttons added to the page header
-3. Import: Select a .txt, .md, or .csv file from your device to upload and autofill to the appropriate fields
-4. Export: Save your Nomi's current Shared Notes into a human readable .txt, .md, or a database-friendly .csv (you can configure this in the next step)
-5. Settings (cogwheel): Choose the file formats you would like to export in
+3. Settings (cogwheel): Choose the file formats you would like to export in
+4. Export: Save your Nomi's current Shared Notes into a human readable .txt, .md, or a database-friendly .csv
+5. Import: Select a .txt, .md, or .csv file from your device to upload and autofill to the appropriate fields. Any modified field will automatically expand, prompting you to either press 'Save' or to cancel the change.
 
 You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.somefiletype'. You can rename these for version control if you like.
 
