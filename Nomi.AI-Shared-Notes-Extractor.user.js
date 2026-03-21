@@ -4,6 +4,7 @@
 // @version      1.0
 // @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
 // @author       spacegoblins
+// @license      MIT
 // @match        *://beta.nomi.ai/nomis/*/shared-notes*
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -741,7 +742,7 @@
 
   // ── Settings Flow ──
 
-  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor';
+  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor/tree/tampermonkey';
 
   function showSettings(exportBtn) {
     const settings = loadSettings();
