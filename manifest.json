@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Nomi.AI Shared Notes Extractor",
-  "version": "1.5",
+  "version": "1.5.1",
   "description": "Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv).",
   "browser_specific_settings": {
     "gecko": {
