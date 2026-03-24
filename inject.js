@@ -366,7 +366,7 @@
     const settings = await loadSettings();
     const fmts = settings.exportFormats;
     if (!fmts.txt && !fmts.md && !fmts.csv) {
-      showToast('No export formats selected. Check Settings in the extension popup.', 'error');
+      showToast('No export formats selected. Open ⚙ Settings in the page header.', 'error');
       return;
     }
 
@@ -474,7 +474,7 @@
     const warningLines = [
       'This operation is destructive and cannot be undone.',
       'You are responsible for creating a backup of your current Shared Notes before importing.',
-      'After import, you must expand each section and manually press Save to commit the changes.',
+      'After import, each section with changes will be expanded automatically. You must press Save in each one to commit the changes.',
     ];
     for (const line of warningLines) {
       const p = document.createElement('div');
@@ -496,6 +496,25 @@
     ]);
   }
 
+  function expandSection(ta) {
+    // Walk up from the textarea looking for a direct-child accordion toggle button.
+    // :scope > button limits the search to immediate children, so we don't
+    // accidentally match toggles from sibling or nested sections.
+    let el = ta.parentElement;
+    let depth = 0;
+    while (el && el !== document.body && depth < 12) {
+      const collapsed = el.querySelector(':scope > button[aria-expanded="false"]');
+      if (collapsed) {
+        collapsed.click();
+        return;
+      }
+      // Already expanded at this level — nothing to do.
+      if (el.querySelector(':scope > button[aria-expanded="true"]')) return;
+      el = el.parentElement;
+      depth++;
+    }
+  }
+
   function executeImport(fields) {
     const values = FIELD_DEFINITIONS.map(f => fields[f.key] || '');
     const textareas = Array.from(document.querySelectorAll('textarea'));
@@ -505,22 +524,190 @@
       return;
     }
 
-    let written = 0;
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype, 'value'
+    ).set;
+
     for (let i = 0; i < values.length && i < textareas.length; i++) {
       const ta = textareas[i];
-      const nativeSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype, 'value'
-      ).set;
-      nativeSetter.call(ta, values[i]);
+      const previousValue = ta.value.trim();
+      const newValue = values[i];
+      nativeSetter.call(ta, newValue);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
-      written++;
+      if (newValue.trim() !== previousValue) expandSection(ta);
     }
 
     showToast(
-      `Import complete. Expand each section and press Save.`,
+      'Import complete. Review each section and press Save.',
       'success', 8000
     );
+  }
+
+  // ── Settings / About Modal ──
+
+  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor';
+  const RELEASES_API_URL = 'https://api.github.com/repos/spacegoblins/nomi.ai-shared-notes-extractor/releases/latest';
+
+  async function showSettings(exportBtn) {
+    const settings = await loadSettings();
+
+    // ── Build modal body content ──
+    const container = document.createElement('div');
+
+    // Tab bar
+    const tabs = document.createElement('div');
+    tabs.className = 'nomi-ext-modal-tabs';
+
+    const settingsTabBtn = document.createElement('button');
+    settingsTabBtn.className = 'nomi-ext-modal-tab nomi-ext-modal-tab--active';
+    settingsTabBtn.textContent = 'Settings';
+
+    const aboutTabBtn = document.createElement('button');
+    aboutTabBtn.className = 'nomi-ext-modal-tab';
+    aboutTabBtn.textContent = 'About';
+
+    tabs.appendChild(settingsTabBtn);
+    tabs.appendChild(aboutTabBtn);
+    container.appendChild(tabs);
+
+    // Tab content area
+    const tabContent = document.createElement('div');
+    container.appendChild(tabContent);
+
+    function renderSettingsTab() {
+      settingsTabBtn.classList.add('nomi-ext-modal-tab--active');
+      aboutTabBtn.classList.remove('nomi-ext-modal-tab--active');
+      tabContent.textContent = '';
+
+      const desc = document.createElement('div');
+      desc.className = 'nomi-ext-settings-desc';
+      desc.textContent = 'Select which formats to include when exporting:';
+      tabContent.appendChild(desc);
+
+      const form = document.createElement('div');
+      form.className = 'nomi-ext-settings-form';
+
+      const formats = [
+        { key: 'txt', label: 'Plain Text (.txt)' },
+        { key: 'md',  label: 'Markdown (.md)' },
+        { key: 'csv', label: 'CSV (.csv)' },
+      ];
+
+      for (const fmt of formats) {
+        const row = document.createElement('label');
+        row.className = 'nomi-ext-checkbox-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!settings.exportFormats[fmt.key];
+        cb.addEventListener('change', async () => {
+          settings.exportFormats[fmt.key] = cb.checked;
+          const anyChecked = Object.values(settings.exportFormats).some(v => v);
+          if (!anyChecked) {
+            settings.exportFormats[fmt.key] = true;
+            cb.checked = true;
+          }
+          try {
+            await browser.storage.sync.set({ settings });
+          } catch (e) { /* storage unavailable */ }
+          updateExportLabel(exportBtn);
+        });
+
+        row.appendChild(cb);
+        row.appendChild(document.createTextNode(fmt.label));
+        form.appendChild(row);
+      }
+      tabContent.appendChild(form);
+    }
+
+    function renderAboutTab() {
+      aboutTabBtn.classList.add('nomi-ext-modal-tab--active');
+      settingsTabBtn.classList.remove('nomi-ext-modal-tab--active');
+      tabContent.textContent = '';
+
+      const loadingMsg = document.createElement('div');
+      loadingMsg.className = 'nomi-ext-modal-info';
+      loadingMsg.textContent = 'Fetching release info…';
+      tabContent.appendChild(loadingMsg);
+
+      fetch(RELEASES_API_URL, { headers: { 'Accept': 'application/vnd.github.v3+json' } })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(release => {
+          tabContent.textContent = '';
+
+          const versionDiv = document.createElement('div');
+          versionDiv.className = 'nomi-ext-about-version';
+          versionDiv.textContent = `Version: ${release.tag_name || release.name || 'unknown'}`;
+          tabContent.appendChild(versionDiv);
+
+          if (release.published_at) {
+            const date = new Date(release.published_at).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            });
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'nomi-ext-about-date';
+            dateDiv.textContent = `Released: ${date}`;
+            tabContent.appendChild(dateDiv);
+          }
+
+          if (release.body) {
+            const notesLabel = document.createElement('div');
+            notesLabel.className = 'nomi-ext-about-notes-label';
+            notesLabel.textContent = 'Release Notes:';
+            tabContent.appendChild(notesLabel);
+
+            const notesBody = document.createElement('div');
+            notesBody.className = 'nomi-ext-about-notes-body';
+            notesBody.textContent = release.body;
+            tabContent.appendChild(notesBody);
+          }
+
+          appendRepoLink(tabContent);
+        })
+        .catch(() => {
+          tabContent.textContent = '';
+
+          const manifest = browser.runtime.getManifest();
+          const versionDiv = document.createElement('div');
+          versionDiv.className = 'nomi-ext-about-version';
+          versionDiv.textContent = `Version: ${manifest.version}`;
+          tabContent.appendChild(versionDiv);
+
+          const failMsg = document.createElement('div');
+          failMsg.className = 'nomi-ext-modal-info';
+          failMsg.textContent = 'Could not fetch release info.';
+          tabContent.appendChild(failMsg);
+
+          appendRepoLink(tabContent);
+        });
+    }
+
+    function appendRepoLink(parent) {
+      const linkDiv = document.createElement('div');
+      linkDiv.style.marginTop = '8px';
+      const link = document.createElement('a');
+      link.href = REPO_URL;
+      link.textContent = 'View on GitHub';
+      link.className = 'nomi-ext-settings-link';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      linkDiv.appendChild(link);
+      parent.appendChild(linkDiv);
+    }
+
+    settingsTabBtn.addEventListener('click', renderSettingsTab);
+    aboutTabBtn.addEventListener('click', renderAboutTab);
+
+    // Render initial tab
+    renderSettingsTab();
+
+    showModal('Nomi.AI Shared Notes Extractor', [container], [
+      { label: 'Close', className: 'nomi-ext-modal-btn-cancel' },
+    ]);
   }
 
   // ── Button Injection ──
@@ -545,15 +732,21 @@
     group.className = 'nomi-ext-btn-group';
     group.id = BUTTON_GROUP_ID;
 
-    const importBtn = document.createElement('button');
-    importBtn.className = 'nomi-ext-btn nomi-ext-btn-import';
-    importBtn.textContent = 'Import';
-    importBtn.addEventListener('click', handleImport);
-
     const exportBtn = document.createElement('button');
     exportBtn.className = 'nomi-ext-btn nomi-ext-btn-export';
     exportBtn.textContent = 'Export';
     exportBtn.addEventListener('click', handleExport);
+
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'nomi-ext-btn nomi-ext-btn-settings';
+    settingsBtn.textContent = '⚙';
+    settingsBtn.title = 'Export Settings';
+    settingsBtn.addEventListener('click', () => showSettings(exportBtn));
+
+    const importBtn = document.createElement('button');
+    importBtn.className = 'nomi-ext-btn nomi-ext-btn-import';
+    importBtn.textContent = 'Import';
+    importBtn.addEventListener('click', handleImport);
 
     // Load the label with format info
     updateExportLabel(exportBtn);
@@ -568,6 +761,7 @@
     divider.textContent = '|';
 
     group.appendChild(divider);
+    group.appendChild(settingsBtn);
     group.appendChild(importBtn);
     group.appendChild(exportBtn);
     header.appendChild(group);
@@ -588,18 +782,23 @@
 
   function checkForNavigation() {
     const currentUrl = window.location.href;
-    if (currentUrl === lastUrl) return;
-    lastUrl = currentUrl;
+    const urlChanged = currentUrl !== lastUrl;
+    if (urlChanged) lastUrl = currentUrl;
 
     if (isSharedNotesPage()) {
-      // Re-inject after SPA navigation back to shared notes
-      waitForHeaderAndInject();
-    } else {
+      // Re-inject on URL change, or if React hydration removed our buttons
+      if (urlChanged || !document.getElementById(BUTTON_GROUP_ID)) {
+        waitForHeaderAndInject();
+      }
+    } else if (urlChanged) {
       // Navigated away — clean up
       removeButtons();
       removeModal();
     }
   }
+
+  // Kept as module-level so we never stack duplicate observers
+  let headerObserver = null;
 
   function waitForHeaderAndInject() {
     // Header may not exist yet — use MutationObserver to wait
@@ -608,16 +807,25 @@
       return;
     }
 
-    const observer = new MutationObserver(() => {
+    // Already waiting — don't create a second observer
+    if (headerObserver) return;
+
+    headerObserver = new MutationObserver(() => {
       if (document.querySelector(HEADER_SELECTOR)) {
-        observer.disconnect();
+        headerObserver.disconnect();
+        headerObserver = null;
         injectButtons();
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    headerObserver.observe(document.body, { childList: true, subtree: true });
 
     // Safety timeout — stop watching after 15s
-    setTimeout(() => observer.disconnect(), 15000);
+    setTimeout(() => {
+      if (headerObserver) {
+        headerObserver.disconnect();
+        headerObserver = null;
+      }
+    }, 15000);
   }
 
   // ── Init ──

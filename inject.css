@@ -166,3 +166,106 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Settings button (slightly smaller than text buttons) ── */
+.nomi-ext-btn-settings {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ── Settings / About modal tab bar ── */
+.nomi-ext-modal-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #3f3f46;
+  margin-bottom: 14px;
+}
+
+.nomi-ext-modal-tab {
+  all: unset;
+  padding: 4px 14px 8px;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.nomi-ext-modal-tab:hover {
+  color: #a1a1aa;
+}
+
+.nomi-ext-modal-tab--active {
+  color: #e4e4e7;
+  border-bottom-color: #818cf8;
+}
+
+/* ── Settings tab content ── */
+.nomi-ext-settings-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.nomi-ext-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.nomi-ext-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #e4e4e7;
+}
+
+.nomi-ext-checkbox-row input[type="checkbox"] {
+  accent-color: #818cf8;
+  width: 14px;
+  height: 14px;
+}
+
+.nomi-ext-settings-link {
+  font-size: 11px;
+  color: #818cf8;
+  text-decoration: underline;
+}
+
+/* ── About tab content ── */
+.nomi-ext-about-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e4e4e7;
+  margin-bottom: 4px;
+}
+
+.nomi-ext-about-date {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.nomi-ext-about-notes-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  margin-bottom: 4px;
+}
+
+.nomi-ext-about-notes-body {
+  font-size: 11px;
+  color: #d4d4d8;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
