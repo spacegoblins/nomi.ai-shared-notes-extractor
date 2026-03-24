@@ -10,4 +10,4 @@
 
 - **Sections auto-expand after import.** When you import a file, any section whose content changed will now automatically open so you can review it.
 
-- **Injection logic fortified.** The extension's injected buttons on your Nomi's shared notes page should more reliably appear. Fixed some isses caused by browing around the SPA which would cause the buttons not to be re-rendered.
+- **Injection logic fortified.** The extension's injected buttons on your Nomi's shared notes page should more reliably appear. Fixed some issues caused by browsing around the SPA which would cause the buttons not to be re-rendered.
