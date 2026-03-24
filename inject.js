@@ -782,18 +782,23 @@
 
   function checkForNavigation() {
     const currentUrl = window.location.href;
-    if (currentUrl === lastUrl) return;
-    lastUrl = currentUrl;
+    const urlChanged = currentUrl !== lastUrl;
+    if (urlChanged) lastUrl = currentUrl;
 
     if (isSharedNotesPage()) {
-      // Re-inject after SPA navigation back to shared notes
-      waitForHeaderAndInject();
-    } else {
+      // Re-inject on URL change, or if React hydration removed our buttons
+      if (urlChanged || !document.getElementById(BUTTON_GROUP_ID)) {
+        waitForHeaderAndInject();
+      }
+    } else if (urlChanged) {
       // Navigated away — clean up
       removeButtons();
       removeModal();
     }
   }
+
+  // Kept as module-level so we never stack duplicate observers
+  let headerObserver = null;
 
   function waitForHeaderAndInject() {
     // Header may not exist yet — use MutationObserver to wait
@@ -802,16 +807,25 @@
       return;
     }
 
-    const observer = new MutationObserver(() => {
+    // Already waiting — don't create a second observer
+    if (headerObserver) return;
+
+    headerObserver = new MutationObserver(() => {
       if (document.querySelector(HEADER_SELECTOR)) {
-        observer.disconnect();
+        headerObserver.disconnect();
+        headerObserver = null;
         injectButtons();
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    headerObserver.observe(document.body, { childList: true, subtree: true });
 
     // Safety timeout — stop watching after 15s
-    setTimeout(() => observer.disconnect(), 15000);
+    setTimeout(() => {
+      if (headerObserver) {
+        headerObserver.disconnect();
+        headerObserver = null;
+      }
+    }, 15000);
   }
 
   // ── Init ──
