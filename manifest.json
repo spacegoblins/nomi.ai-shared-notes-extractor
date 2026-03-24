@@ -27,7 +27,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://beta.nomi.ai/nomis/*/shared-notes*"],
+      "matches": ["*://beta.nomi.ai/*"],
       "js": ["inject.js"],
       "css": ["inject.css"],
       "run_at": "document_idle"

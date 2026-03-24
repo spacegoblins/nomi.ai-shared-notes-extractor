@@ -833,7 +833,9 @@
   // Poll for URL changes (catches SPA navigation that doesn't trigger popstate)
   setInterval(checkForNavigation, 500);
 
-  // Initial injection
-  waitForHeaderAndInject();
+  // Initial injection (only if already on a shared-notes page)
+  if (isSharedNotesPage()) {
+    waitForHeaderAndInject();
+  }
 
 })();
