@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Nomi.AI Shared Notes Extractor
 // @namespace    https://github.com/spacegoblins/nomi.ai-shared-notes-extractor
-// @version      1.5
+// @version      1.5.1
 // @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
 // @author       spacegoblins
 // @license      MIT
-// @match        *://beta.nomi.ai/nomis/*/shared-notes*
+// @match        *://beta.nomi.ai/*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
@@ -939,7 +939,9 @@
   // Poll for URL changes (catches SPA navigation that doesn't trigger popstate)
   setInterval(checkForNavigation, 500);
 
-  // Initial injection
-  waitForHeaderAndInject();
+  // Initial injection (only if already on a shared-notes page)
+  if (isSharedNotesPage()) {
+    waitForHeaderAndInject();
+  }
 
 })();
