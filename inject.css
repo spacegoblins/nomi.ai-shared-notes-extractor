@@ -1,4 +1,4 @@
-/* inject.css — styles for in-page Import/Export buttons and modal overlay */
+/* inject.css — shared styles for in-page Import/Export buttons, modals, and popup */
 /* All selectors scoped with nomi-ext- prefix to avoid conflicts with Nomi.ai / Mantine CSS */
 
 /* Button container — left-aligned, snug after the header title */
@@ -44,6 +44,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,6 +124,9 @@
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #fff;
 }
+.nomi-ext-modal-btn-confirm:hover {
+  filter: brightness(1.15);
+}
 
 .nomi-ext-modal-btn-cancel {
   background: #27272a;
@@ -137,8 +141,9 @@
 /* Toast — brief success/error message */
 .nomi-ext-toast {
   position: fixed;
-  top: 16px;
-  right: 16px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   padding: 10px 18px;
   border-radius: 6px;
   font-family: 'Urbanist', sans-serif;
@@ -163,8 +168,8 @@
 }
 
 @keyframes nomi-ext-fadein {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── Settings button (slightly smaller than text buttons) ── */
@@ -268,4 +273,18 @@
   max-height: 120px;
   overflow-y: auto;
   margin-bottom: 10px;
+}
+
+/* ── Accessibility: focus outlines ── */
+.nomi-ext-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.nomi-ext-modal-tab:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.nomi-ext-modal-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
 }

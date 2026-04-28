@@ -16,7 +16,6 @@
     { key: 'currentRoleplay',      label: 'CURRENT ROLEPLAY' },
     { key: 'yourAppearance',       label: 'YOUR APPEARANCE' },
     { key: 'nomiAppearance',       label: "NOMI'S APPEARANCE" },
-    { key: 'appearanceTendencies', label: 'APPEARANCE TENDENCIES' },
     { key: 'nicknames',            label: 'NICKNAMES' },
     { key: 'preferences',          label: 'PREFERENCES' },
     { key: 'desires',              label: 'DESIRES' },

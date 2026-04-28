@@ -29,14 +29,10 @@ This extension is under the MIT license, and you can download the code from [Git
 
 You should find your Nomi's shared notes in your download folder, named 'nominame_Shared_Notes.MM-DD-YYYY-HHmm.somefiletype'. You can rename these for version control if you like.
 
-## Future Updates:
-
-If the community finds this extension useful, I may expand it's features. Let Cardine and the team on the [Nomi.ai Discord](https://discord.gg/nomiai) know that you would like the native ability to download or upload Nomi Shared Notes directly from beta.nomi.ai - This would be a welcome feature if enough demand is present.
-
-Thank you for using my extension. To see my other tools for Nomi.ai, visit [nomicrafter.com.](https://nomicrafter.com/)
-
 ## Bug Reports/Comments:
 
 You can contact me at spacegoblins@protonmail.com.
 
 You can also @spacegoblins on the Nomi.ai Discord. Use [this thread.](https://discord.com/channels/1099791840028405864/1402257023353098241)
+
+Thank you for using my extension. To see my other tools for Nomi.ai, visit [nomicrafter.com.](https://nomicrafter.com/)

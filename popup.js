@@ -1,4 +1,4 @@
-// popup.js — toolbar popup for v1.5
+// popup.js — toolbar popup for v1.6
 // Shows the same Settings / About tab interface as the in-page ⚙ modal.
 
 const tabBar = document.getElementById('tab-bar');
@@ -31,21 +31,21 @@ async function saveSettings(settings) {
 let settingsTabEl, aboutTabEl;
 
 function buildTabBar() {
-  settingsTabEl = document.createElement('button');
-  settingsTabEl.className = 'modal-tab active';
+   settingsTabEl = document.createElement('button');
+   settingsTabEl.className = 'nomi-ext-modal-tab nomi-ext-modal-tab--active';
   settingsTabEl.textContent = 'Settings';
   settingsTabEl.addEventListener('click', () => {
-    settingsTabEl.classList.add('active');
-    aboutTabEl.classList.remove('active');
+     settingsTabEl.classList.add('nomi-ext-modal-tab--active');
+     aboutTabEl.classList.remove('nomi-ext-modal-tab--active');
     renderSettingsContent();
   });
 
-  aboutTabEl = document.createElement('button');
-  aboutTabEl.className = 'modal-tab';
+   aboutTabEl = document.createElement('button');
+   aboutTabEl.className = 'nomi-ext-modal-tab';
   aboutTabEl.textContent = 'About';
   aboutTabEl.addEventListener('click', () => {
-    aboutTabEl.classList.add('active');
-    settingsTabEl.classList.remove('active');
+     aboutTabEl.classList.add('nomi-ext-modal-tab--active');
+     settingsTabEl.classList.remove('nomi-ext-modal-tab--active');
     renderAboutContent();
   });
 
@@ -60,12 +60,12 @@ async function renderSettingsContent() {
   const settings = await loadSettings();
 
   const desc = document.createElement('div');
-  desc.className = 'settings-desc';
+   desc.className = 'nomi-ext-settings-desc';
   desc.textContent = 'Select which formats to include when exporting:';
   tabContent.appendChild(desc);
 
   const form = document.createElement('div');
-  form.className = 'settings-form';
+   form.className = 'nomi-ext-settings-form';
 
   const formats = [
     { key: 'txt', label: 'Plain Text (.txt)' },
@@ -75,7 +75,7 @@ async function renderSettingsContent() {
 
   for (const fmt of formats) {
     const row = document.createElement('label');
-    row.className = 'checkbox-row';
+     row.className = 'nomi-ext-checkbox-row';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -106,7 +106,7 @@ function renderAboutContent() {
   tabContent.textContent = '';
 
   const loadingMsg = document.createElement('div');
-  loadingMsg.className = 'info-text';
+   loadingMsg.className = 'nomi-ext-modal-info';
   loadingMsg.textContent = 'Fetching release info\u2026';
   tabContent.appendChild(loadingMsg);
 
@@ -119,7 +119,7 @@ function renderAboutContent() {
       tabContent.textContent = '';
 
       const versionDiv = document.createElement('div');
-      versionDiv.className = 'about-version';
+       versionDiv.className = 'nomi-ext-about-version';
       versionDiv.textContent = `Version: ${release.tag_name || release.name || 'unknown'}`;
       tabContent.appendChild(versionDiv);
 
@@ -128,19 +128,19 @@ function renderAboutContent() {
           year: 'numeric', month: 'long', day: 'numeric',
         });
         const dateDiv = document.createElement('div');
-        dateDiv.className = 'about-date';
+         dateDiv.className = 'nomi-ext-about-date';
         dateDiv.textContent = `Released: ${date}`;
         tabContent.appendChild(dateDiv);
       }
 
       if (release.body) {
         const notesLabel = document.createElement('div');
-        notesLabel.className = 'about-notes-label';
+         notesLabel.className = 'nomi-ext-about-notes-label';
         notesLabel.textContent = 'Release Notes:';
         tabContent.appendChild(notesLabel);
 
         const notesBody = document.createElement('div');
-        notesBody.className = 'about-notes-body';
+         notesBody.className = 'nomi-ext-about-notes-body';
         notesBody.textContent = release.body;
         tabContent.appendChild(notesBody);
       }
@@ -152,12 +152,12 @@ function renderAboutContent() {
 
       const manifest = browser.runtime.getManifest();
       const versionDiv = document.createElement('div');
-      versionDiv.className = 'about-version';
+      versionDiv.className = 'nomi-ext-about-version';
       versionDiv.textContent = `Version: ${manifest.version}`;
       tabContent.appendChild(versionDiv);
 
       const failMsg = document.createElement('div');
-      failMsg.className = 'info-text';
+       failMsg.className = 'nomi-ext-modal-info';
       failMsg.textContent = 'Could not fetch release info.';
       tabContent.appendChild(failMsg);
 
@@ -171,7 +171,7 @@ function appendRepoLink() {
   const link = document.createElement('a');
   link.href = REPO_URL;
   link.textContent = 'View on GitHub';
-  link.className = 'settings-link';
+   link.className = 'nomi-ext-settings-link';
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   linkDiv.appendChild(link);

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="inject.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,123 +15,16 @@
       min-height: 80px;
     }
 
-    /* ── Modal title ── */
-
-    .modal-title {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      color: #e4e4e7;
-    }
-
-    /* ── Tab bar ── */
-
-    .modal-tabs {
-      display: flex;
-      border-bottom: 1px solid #3f3f46;
-      margin-bottom: 14px;
-    }
-
-    .modal-tab {
-      all: unset;
-      padding: 4px 14px 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #71717a;
-      cursor: pointer;
-      transition: color 0.15s;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-    }
-
-    .modal-tab:hover { color: #a1a1aa; }
-
-    .modal-tab.active {
-      color: #e4e4e7;
-      border-bottom-color: #818cf8;
-    }
-
-    /* ── Settings tab ── */
-
-    .settings-desc {
-      font-size: 12px;
-      color: #a1a1aa;
-      margin-bottom: 10px;
-    }
-
-    .settings-form {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      color: #e4e4e7;
-    }
-
-    .checkbox-row input[type="checkbox"] {
-      accent-color: #818cf8;
-      width: 14px;
-      height: 14px;
-    }
-
-    /* ── About tab ── */
-
-    .about-version {
-      font-size: 12px;
-      font-weight: 600;
-      color: #e4e4e7;
-      margin-bottom: 4px;
-    }
-
-    .about-date {
-      font-size: 11px;
-      color: #a1a1aa;
-      margin-bottom: 10px;
-    }
-
-    .about-notes-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: #a1a1aa;
-      margin-bottom: 4px;
-    }
-
-    .about-notes-body {
-      font-size: 11px;
-      color: #d4d4d8;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      max-height: 180px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-
-    .info-text {
-      font-size: 11px;
-      color: #a1a1aa;
-      margin-bottom: 6px;
-    }
-
-    .settings-link {
-      font-size: 11px;
-      color: #818cf8;
-      text-decoration: underline;
+    /* Override Urbanist from inject.css — not loaded in popup context */
+    .nomi-ext-modal-tab,
+    .nomi-ext-modal-tab--active {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
   </style>
 </head>
 <body>
-  <div class="modal-title">Nomi.AI Shared Notes Extractor</div>
-  <div class="modal-tabs" id="tab-bar"></div>
+  <div class="nomi-ext-modal-title">Nomi.AI Shared Notes Extractor</div>
+  <div class="nomi-ext-modal-tabs" id="tab-bar"></div>
   <div id="tab-content"></div>
 
   <script src="popup.js"></script>
