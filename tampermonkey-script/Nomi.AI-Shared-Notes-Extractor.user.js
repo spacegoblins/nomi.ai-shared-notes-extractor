@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nomi.AI Shared Notes Extractor
 // @namespace    https://github.com/spacegoblins/nomi.ai-shared-notes-extractor
-// @version      1.5.1
+// @version      1.6.0
 // @description  Export and import your Nomi's Shared Notes in multiple formats (.txt, .md, .csv). Not affiliated with Nomi.ai or Glimpse.ai.
 // @author       spacegoblins
 // @license      MIT
@@ -10,8 +10,8 @@
 // @grant        GM_setValue
 // @grant        GM_addStyle
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
-// @downloadURL  https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/tampermonkey/Nomi.AI-Shared-Notes-Extractor.user.js
+// @updateURL    https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/main/tampermonkey-script/Nomi.AI-Shared-Notes-Extractor.user.js
+// @downloadURL  https://raw.githubusercontent.com/spacegoblins/nomi.ai-shared-notes-extractor/main/tampermonkey-script/Nomi.AI-Shared-Notes-Extractor.user.js
 // ==/UserScript==
 
 (function () {
@@ -61,7 +61,7 @@
 .nomi-ext-btn:hover { color: #fff; }
 .nomi-ext-btn:active { color: #e0e0e0; }
 
-/* Settings button — slightly smaller to feel like an icon */
+/* Settings button — slightly smaller than text buttons */
 .nomi-ext-btn-settings {
   font-size: 18px;
   line-height: 1;
@@ -72,6 +72,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -126,52 +127,60 @@
   margin-bottom: 8px;
 }
 
-/* ── Modal action buttons ── */
+/* Modal action buttons */
 .nomi-ext-modal-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
-  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .nomi-ext-modal-btn {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  font-family: 'Urbanist', sans-serif;
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
   transition: opacity 0.15s;
+  box-sizing: border-box;
 }
-.nomi-ext-modal-btn:hover { opacity: 0.85; }
 
 .nomi-ext-modal-btn-confirm {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #fff;
+}
+.nomi-ext-modal-btn-confirm:hover {
+  filter: brightness(1.15);
 }
 
 .nomi-ext-modal-btn-cancel {
-  background: #3f3f46;
+  background: #27272a;
   color: #e4e4e7;
+  border: 1px solid #3f3f46;
 }
 
-/* ── Toast ── */
+.nomi-ext-modal-btn-cancel:hover {
+  background: #3f3f46;
+}
+
+/* Toast — brief success/error message */
 .nomi-ext-toast {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100000;
-  padding: 10px 16px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
   border-radius: 6px;
   font-family: 'Urbanist', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.4;
-  max-width: 340px;
+  z-index: 100000;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
   animation: nomi-ext-fadein 0.2s ease;
+  max-width: 360px;
 }
 
 .nomi-ext-toast-success {
@@ -187,11 +196,41 @@
 }
 
 @keyframes nomi-ext-fadein {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* ── Settings panel ── */
+/* ── Settings / About modal tab bar ── */
+.nomi-ext-modal-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #3f3f46;
+  margin-bottom: 14px;
+}
+
+.nomi-ext-modal-tab {
+  all: unset;
+  padding: 4px 14px 8px;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.nomi-ext-modal-tab:hover {
+  color: #a1a1aa;
+}
+
+.nomi-ext-modal-tab--active {
+  color: #e4e4e7;
+  border-bottom-color: #818cf8;
+}
+
+/* ── Settings tab content ── */
 .nomi-ext-settings-desc {
   font-size: 12px;
   color: #a1a1aa;
@@ -225,6 +264,52 @@
   color: #818cf8;
   text-decoration: underline;
 }
+
+/* ── About tab content ── */
+.nomi-ext-about-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e4e4e7;
+  margin-bottom: 4px;
+}
+
+.nomi-ext-about-date {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.nomi-ext-about-notes-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  margin-bottom: 4px;
+}
+
+.nomi-ext-about-notes-body {
+  font-size: 11px;
+  color: #d4d4d8;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+/* ── Accessibility: focus outlines ── */
+.nomi-ext-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.nomi-ext-modal-tab:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.nomi-ext-modal-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
 `);
 
   // ── Field Definitions ──
@@ -235,7 +320,6 @@
     { key: 'currentRoleplay',      label: 'CURRENT ROLEPLAY' },
     { key: 'yourAppearance',       label: 'YOUR APPEARANCE' },
     { key: 'nomiAppearance',       label: "NOMI'S APPEARANCE" },
-    { key: 'appearanceTendencies', label: 'APPEARANCE TENDENCIES' },
     { key: 'nicknames',            label: 'NICKNAMES' },
     { key: 'preferences',          label: 'PREFERENCES' },
     { key: 'desires',              label: 'DESIRES' },
@@ -589,7 +673,7 @@
     const settings = loadSettings();
     const fmts = settings.exportFormats;
     if (!fmts.txt && !fmts.md && !fmts.csv) {
-      showToast('No export formats selected. Open \u2699 Settings to choose a format.', 'error');
+      showToast('No export formats selected. Open \u2699 Settings in the page header.', 'error');
       return;
     }
 
@@ -693,7 +777,7 @@
     const warningLines = [
       'This operation is destructive and cannot be undone.',
       'You are responsible for creating a backup of your current Shared Notes before importing.',
-      'After import, each section will be expanded automatically. You must press Save in each one to commit the changes.',
+      'After import, each section with changes will be expanded automatically. You must press Save in each one to commit the changes.',
     ];
     for (const line of warningLines) {
       const p = document.createElement('div');
@@ -753,70 +837,173 @@
       nativeSetter.call(ta, newValue);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
-      if (newValue !== previousValue) expandSection(ta);
+      if (newValue.trim() !== previousValue) expandSection(ta);
     }
 
     showToast('Import complete. Review each section and press Save.', 'success', 8000);
   }
 
-  // ── Settings Flow ──
+  // ── Settings / About Modal ──
 
-  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor/tree/tampermonkey';
+  const REPO_URL = 'https://github.com/spacegoblins/nomi.ai-shared-notes-extractor';
+  const RELEASES_API_URL = 'https://api.github.com/repos/spacegoblins/nomi.ai-shared-notes-extractor/releases/latest';
 
   function showSettings(exportBtn) {
     const settings = loadSettings();
-    const bodyNodes = [];
 
-    const desc = document.createElement('div');
-    desc.className = 'nomi-ext-settings-desc';
-    desc.textContent = 'Select which formats to include when exporting:';
-    bodyNodes.push(desc);
+    // ── Build modal body content ──
+    const container = document.createElement('div');
 
-    const form = document.createElement('div');
-    form.className = 'nomi-ext-settings-form';
+    // Tab bar
+    const tabs = document.createElement('div');
+    tabs.className = 'nomi-ext-modal-tabs';
 
-    const formats = [
-      { key: 'txt', label: 'Plain Text (.txt)' },
-      { key: 'md',  label: 'Markdown (.md)' },
-      { key: 'csv', label: 'CSV (.csv)' },
-    ];
+    const settingsTabBtn = document.createElement('button');
+    settingsTabBtn.className = 'nomi-ext-modal-tab nomi-ext-modal-tab--active';
+    settingsTabBtn.textContent = 'Settings';
 
-    for (const fmt of formats) {
-      const row = document.createElement('label');
-      row.className = 'nomi-ext-checkbox-row';
+    const aboutTabBtn = document.createElement('button');
+    aboutTabBtn.className = 'nomi-ext-modal-tab';
+    aboutTabBtn.textContent = 'About';
 
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = !!settings.exportFormats[fmt.key];
-      cb.addEventListener('change', () => {
-        settings.exportFormats[fmt.key] = cb.checked;
-        // Ensure at least one format stays selected
-        const anyChecked = Object.values(settings.exportFormats).some(v => v);
-        if (!anyChecked) {
-          settings.exportFormats[fmt.key] = true;
-          cb.checked = true;
-        }
-        saveSettings(settings);
-        updateExportLabel(exportBtn);
-      });
+    tabs.appendChild(settingsTabBtn);
+    tabs.appendChild(aboutTabBtn);
+    container.appendChild(tabs);
 
-      row.appendChild(cb);
-      row.appendChild(document.createTextNode(fmt.label));
-      form.appendChild(row);
+    // Tab content area
+    const tabContent = document.createElement('div');
+    container.appendChild(tabContent);
+
+    function renderSettingsTab() {
+      settingsTabBtn.classList.add('nomi-ext-modal-tab--active');
+      aboutTabBtn.classList.remove('nomi-ext-modal-tab--active');
+      tabContent.textContent = '';
+
+      const desc = document.createElement('div');
+      desc.className = 'nomi-ext-settings-desc';
+      desc.textContent = 'Select which formats to include when exporting:';
+      tabContent.appendChild(desc);
+
+      const form = document.createElement('div');
+      form.className = 'nomi-ext-settings-form';
+
+      const formats = [
+        { key: 'txt', label: 'Plain Text (.txt)' },
+        { key: 'md',  label: 'Markdown (.md)' },
+        { key: 'csv', label: 'CSV (.csv)' },
+      ];
+
+      for (const fmt of formats) {
+        const row = document.createElement('label');
+        row.className = 'nomi-ext-checkbox-row';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!settings.exportFormats[fmt.key];
+        cb.addEventListener('change', () => {
+          settings.exportFormats[fmt.key] = cb.checked;
+          const anyChecked = Object.values(settings.exportFormats).some(v => v);
+          if (!anyChecked) {
+            settings.exportFormats[fmt.key] = true;
+            cb.checked = true;
+          }
+          saveSettings(settings);
+          updateExportLabel(exportBtn);
+        });
+
+        row.appendChild(cb);
+        row.appendChild(document.createTextNode(fmt.label));
+        form.appendChild(row);
+      }
+      tabContent.appendChild(form);
     }
-    bodyNodes.push(form);
 
-    const linkDiv = document.createElement('div');
-    const link = document.createElement('a');
-    link.href = REPO_URL;
-    link.textContent = 'View on GitHub';
-    link.className = 'nomi-ext-settings-link';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    linkDiv.appendChild(link);
-    bodyNodes.push(linkDiv);
+    function renderAboutTab() {
+      aboutTabBtn.classList.add('nomi-ext-modal-tab--active');
+      settingsTabBtn.classList.remove('nomi-ext-modal-tab--active');
+      tabContent.textContent = '';
 
-    showModal('Export Settings', bodyNodes, []);
+      const loadingMsg = document.createElement('div');
+      loadingMsg.className = 'nomi-ext-modal-info';
+      loadingMsg.textContent = 'Fetching release info\u2026';
+      tabContent.appendChild(loadingMsg);
+
+      fetch(RELEASES_API_URL, { headers: { 'Accept': 'application/vnd.github.v3+json' } })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(release => {
+          tabContent.textContent = '';
+
+          const versionDiv = document.createElement('div');
+          versionDiv.className = 'nomi-ext-about-version';
+          versionDiv.textContent = `Version: ${release.tag_name || release.name || 'unknown'}`;
+          tabContent.appendChild(versionDiv);
+
+          if (release.published_at) {
+            const date = new Date(release.published_at).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            });
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'nomi-ext-about-date';
+            dateDiv.textContent = `Released: ${date}`;
+            tabContent.appendChild(dateDiv);
+          }
+
+          if (release.body) {
+            const notesLabel = document.createElement('div');
+            notesLabel.className = 'nomi-ext-about-notes-label';
+            notesLabel.textContent = 'Release Notes:';
+            tabContent.appendChild(notesLabel);
+
+            const notesBody = document.createElement('div');
+            notesBody.className = 'nomi-ext-about-notes-body';
+            notesBody.textContent = release.body;
+            tabContent.appendChild(notesBody);
+          }
+
+          appendRepoLink(tabContent);
+        })
+        .catch(() => {
+          tabContent.textContent = '';
+
+          const versionDiv = document.createElement('div');
+          versionDiv.className = 'nomi-ext-about-version';
+          versionDiv.textContent = 'Version: 1.6.0';
+          tabContent.appendChild(versionDiv);
+
+          const failMsg = document.createElement('div');
+          failMsg.className = 'nomi-ext-modal-info';
+          failMsg.textContent = 'Could not fetch release info.';
+          tabContent.appendChild(failMsg);
+
+          appendRepoLink(tabContent);
+        });
+    }
+
+    function appendRepoLink(parent) {
+      const linkDiv = document.createElement('div');
+      linkDiv.style.marginTop = '8px';
+      const link = document.createElement('a');
+      link.href = REPO_URL;
+      link.textContent = 'View on GitHub';
+      link.className = 'nomi-ext-settings-link';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      linkDiv.appendChild(link);
+      parent.appendChild(linkDiv);
+    }
+
+    settingsTabBtn.addEventListener('click', renderSettingsTab);
+    aboutTabBtn.addEventListener('click', renderAboutTab);
+
+    // Render initial tab
+    renderSettingsTab();
+
+    showModal('Nomi.AI Shared Notes Extractor', [container], [
+      { label: 'Close', className: 'nomi-ext-modal-btn-cancel' },
+    ]);
   }
 
   // ── Button Injection ──

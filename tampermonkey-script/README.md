@@ -1,4 +1,4 @@
-# Nomi.AI Shared Notes Extractor
+# Nomi.AI Shared Notes Extractor (Tampermonkey Script)
 
 ## Overview:
 
@@ -15,7 +15,7 @@ This script is under the MIT license, and you can download the code from [GitHub
 ## Installation:
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for the browser of your choice
-2. Download the user script from the [tampermonkey branch of the GitHub repo](https://github.com/spacegoblins/nomi.ai-shared-notes-extractor/tree/tampermonkey) or from [Greasy Fork](https://greasyfork.org/en/scripts/570534-nomi-ai-shared-notes-extractor)
+2. Download the user script from the [tampermonkey folder of the GitHub repo](https://github.com/spacegoblins/nomi.ai-shared-notes-extractor/blob/main/tampermonkey-script/Nomi.AI-Shared-Notes-Extractor.user.js) or from [Greasy Fork](https://greasyfork.org/en/scripts/570534-nomi-ai-shared-notes-extractor)
 3. Tampermonkey should automatically intercept the download, and offer to install it for you
 
 ## Usage:
