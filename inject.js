@@ -95,22 +95,64 @@
     await sleep(300);
   }
 
-  function readTextareas() {
-    return Array.from(document.querySelectorAll('textarea')).map(ta =>
-      ta.value ? ta.value.trim() : ''
-    );
+  // Match a textarea to its Shared Notes field by walking up to its accordion
+  // panel and reading the title from the associated control button. This is
+  // identity-based, so positional order no longer matters: stray textareas
+  // elsewhere on the page and section reordering can't misalign fields (the
+  // old code matched purely by DOM order).
+  function getFieldForTextarea(ta) {
+    const panel = ta.closest('[role="region"]');
+    if (!panel) return null;
+    const controlId = panel.getAttribute('aria-labelledby');
+    if (!controlId) return null;
+    const control = document.getElementById(controlId);
+    if (!control) return null;
+    const titleEl = control.querySelector('[data-size="xl"]');
+    const upper = (titleEl ? titleEl.textContent : '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+    for (const field of FIELD_DEFINITIONS) {
+      if (field.key === 'nomiAppearance') {
+        // Label is dynamic ("Sayumi's Appearance", "James' Appearance", ...).
+        if (upper.endsWith('APPEARANCE') && upper !== 'YOUR APPEARANCE') return field;
+      } else if (upper === field.label) {
+        return field;
+      }
+    }
+    return null;
+  }
+
+  // Collect field values in FIELD_DEFINITIONS order, ignoring stray textareas
+  // that don't map to a field. Values are preserved as-is (no trimming) so
+  // intentional leading/trailing whitespace survives a round-trip. Also reports
+  // which fields were genuinely missing so the export can warn meaningfully.
+  function collectFieldValues() {
+    const byKey = {};
+    const found = new Set();
+    for (const ta of document.querySelectorAll('textarea')) {
+      const field = getFieldForTextarea(ta);
+      if (field) {
+        byKey[field.key] = ta.value;
+        found.add(field.key);
+      }
+    }
+    return {
+      values: FIELD_DEFINITIONS.map(f => byKey[f.key] || ''),
+      missing: FIELD_DEFINITIONS.filter(f => !found.has(f.key)).map(f => f.label),
+    };
   }
 
   function collectExportData() {
     const nomiName = getNomiName();
     const nomiId = getNomiId();
-    const fieldValues = readTextareas();
+    const { values, missing } = collectFieldValues();
     const timestamp = getTimestamp();
     const now = new Date().toLocaleString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
-    return { nomiName, nomiId, fieldValues, timestamp, now };
+    return { nomiName, nomiId, fieldValues: values, missingFields: missing, timestamp, now };
   }
 
   // ── Format Builders ──
@@ -124,8 +166,8 @@
       `Nomi ID (From URL): ${data.nomiId}`,
       divider, '',
     ];
-    if (data.fieldValues.length !== FIELD_DEFINITIONS.length) {
-      lines.push(`\u26A0 WARNING: Expected ${FIELD_DEFINITIONS.length} fields, found ${data.fieldValues.length}.`);
+    if (data.missingFields.length) {
+      lines.push(`\u26A0 WARNING: Could not find fields: ${data.missingFields.join(', ')}`);
       lines.push('');
     }
     FIELD_DEFINITIONS.forEach((field, i) => {
@@ -182,7 +224,8 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Defer revoking so the browser has time to start the download.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   // ── Parsers (for Import) ──
@@ -375,8 +418,8 @@
     await sleep(500);
 
     const data = collectExportData();
-    if (data.fieldValues.length === 0) {
-      showToast('No text fields found. Make sure the page has loaded.', 'error');
+    if (data.missingFields.length === FIELD_DEFINITIONS.length) {
+      showToast('No Shared Notes fields found. Make sure the page has loaded.', 'error');
       return;
     }
 
@@ -515,26 +558,28 @@
   }
 
   function executeImport(fields) {
-    const values = FIELD_DEFINITIONS.map(f => fields[f.key] || '');
-    const textareas = Array.from(document.querySelectorAll('textarea'));
-
-    if (textareas.length === 0) {
-      showToast('No textareas found on page.', 'error');
-      return;
-    }
-
     const nativeSetter = Object.getOwnPropertyDescriptor(
       window.HTMLTextAreaElement.prototype, 'value'
     ).set;
 
-    for (let i = 0; i < values.length && i < textareas.length; i++) {
-      const ta = textareas[i];
+    let filled = 0;
+    for (const ta of document.querySelectorAll('textarea')) {
+      // Fill each field's own textarea (matched by identity), so stray
+      // textareas on the page are left untouched.
+      const field = getFieldForTextarea(ta);
+      if (!field) continue;
+      const newValue = fields[field.key] || '';
       const previousValue = ta.value.trim();
-      const newValue = values[i];
       nativeSetter.call(ta, newValue);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
       if (newValue.trim() !== previousValue) expandSection(ta);
+      filled++;
+    }
+
+    if (filled === 0) {
+      showToast('No Shared Notes fields found on page.', 'error');
+      return;
     }
 
     showToast(
@@ -720,6 +765,20 @@
     btn.textContent = `Export [${labels.join(', ')}]`;
   }
 
+  // Register the settings-change listener once. Re-injecting buttons on SPA
+  // navigation would otherwise accumulate duplicate listeners, each holding a
+  // stale reference to a detached button.
+  let storageListenerRegistered = false;
+  function registerStorageListener() {
+    if (storageListenerRegistered) return;
+    storageListenerRegistered = true;
+    browser.storage.onChanged.addListener((changes) => {
+      if (!changes.settings) return;
+      const btn = document.querySelector('.nomi-ext-btn-export');
+      if (btn) updateExportLabel(btn);
+    });
+  }
+
   function injectButtons() {
     // Don't inject if already present
     if (document.getElementById(BUTTON_GROUP_ID)) return;
@@ -750,10 +809,8 @@
     // Load the label with format info
     updateExportLabel(exportBtn);
 
-    // Listen for settings changes to update the label
-    browser.storage.onChanged.addListener((changes) => {
-      if (changes.settings) updateExportLabel(exportBtn);
-    });
+    // Listen for settings changes to update the label (registered once)
+    registerStorageListener();
 
     const divider = document.createElement('span');
     divider.className = 'nomi-ext-divider';
