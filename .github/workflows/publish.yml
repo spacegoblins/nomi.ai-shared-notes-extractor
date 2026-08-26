@@ -1,0 +1,66 @@
+name: Publish to AMO
+
+# Triggers whenever a change lands on main that touches manifest.json.
+# The job then checks whether the manifest version has already been released
+# (by looking for a matching git tag). If it hasn't, it builds the package
+# and submits it to the Mozilla Add-on Store for review.
+on:
+  push:
+    branches: [main]
+    paths:
+      - manifest.json
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to create the release tag
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch tags so we can detect already-released versions
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install web-ext
+        run: npm install -g web-ext
+
+      - name: Read manifest version
+        id: version
+        run: echo "version=$(node -p "require('./manifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already released
+        id: released
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and sign for AMO
+        if: steps.released.outputs.released == 'false'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+        run: web-ext sign --channel=listed
+
+      - name: Upload signed package as artifact
+        if: steps.released.outputs.released == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nomi-shared-notes-extractor-v${{ steps.version.outputs.version }}
+          path: web-ext-artifacts/*.xpi
+
+      - name: Tag the released version
+        if: steps.released.outputs.released == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
