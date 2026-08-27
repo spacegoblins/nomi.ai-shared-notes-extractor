@@ -15,6 +15,7 @@ export default {
     '.github',
     '.web-ext-config.mjs',
     'web-ext-artifacts',
+    'amo-metadata.json',
 
     // Docs and assets not needed at runtime
     'README.md',

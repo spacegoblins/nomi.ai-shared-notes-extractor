@@ -163,7 +163,7 @@
       divider,
       `${data.nomiName.toUpperCase()} \u2014 SHARED NOTES`,
       `Exported: ${data.now}`,
-      `Nomi ID (From URL): ${data.nomiId}`,
+      `Nomi ID: ${data.nomiId}`,
       divider, '',
     ];
     if (data.missingFields.length) {

@@ -43,12 +43,29 @@ jobs:
             echo "released=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate AMO metadata from commit message
+        if: steps.released.outputs.released == 'false'
+        run: |
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          COMMIT_MSG="$COMMIT_MSG" node -e '
+            const fs = require("fs");
+            const notes = (process.env.COMMIT_MSG || "").trim();
+            const metadata = {
+              version_notes: { "en-US": notes },
+              compatibility: {
+                firefox: { min: "115.0", max: "*" },
+                android: { min: "115.0", max: "*" }
+              }
+            };
+            fs.writeFileSync("amo-metadata.json", JSON.stringify(metadata, null, 2));
+          '
+
       - name: Build and sign for AMO
         if: steps.released.outputs.released == 'false'
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
-        run: web-ext sign --channel=listed
+        run: web-ext sign --channel=listed --amo-metadata amo-metadata.json
 
       - name: Upload signed package as artifact
         if: steps.released.outputs.released == 'false'
